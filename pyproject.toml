@@ -4,4 +4,13 @@ version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "ccxt>=4.4.98",
+    "flask>=3.1.1",
+    "numpy<2.0",
+    "pandas>=2.3.1",
+    "pandas-ta==0.3.14b0",
+    "python-telegram-bot>=22.3",
+    "requests>=2.32.4",
+    "telegram",
+]
