@@ -5,6 +5,7 @@ class CryptoDashboard {
         this.currentTimeframe = '1d';
         this.alertSystem = new AlertManager();
         this.isDarkMode = true;
+        this.apiBase = window.location.origin; // Use current host
         
         this.init();
     }
@@ -70,7 +71,7 @@ class CryptoDashboard {
     
     async loadRealtimeData() {
         try {
-            const response = await fetch(`/api/realtime/${this.currentSymbol}`);
+            const response = await fetch(`${this.apiBase}/api/realtime/${this.currentSymbol}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -85,7 +86,7 @@ class CryptoDashboard {
     
     async loadAnalysis() {
         try {
-            const response = await fetch(`/api/analyze?symbol=${this.currentSymbol}&timeframe=${this.currentTimeframe}`);
+            const response = await fetch(`${this.apiBase}/api/analyze?symbol=${this.currentSymbol}&timeframe=${this.currentTimeframe}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -102,7 +103,7 @@ class CryptoDashboard {
     
     async loadFibonacciLevels() {
         try {
-            const response = await fetch(`/api/fibonacci/${this.currentSymbol}`);
+            const response = await fetch(`${this.apiBase}/api/fibonacci/${this.currentSymbol}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -117,7 +118,7 @@ class CryptoDashboard {
     
     async loadRecentAlerts() {
         try {
-            const response = await fetch(`/api/alerts/${this.currentSymbol}`);
+            const response = await fetch(`${this.apiBase}/api/alerts/${this.currentSymbol}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -276,7 +277,7 @@ class CryptoDashboard {
         }
         
         try {
-            const response = await fetch('/api/alerts/create', {
+            const response = await fetch(`${this.apiBase}/api/alerts/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

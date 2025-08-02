@@ -833,12 +833,24 @@ def telegram_debug():
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     """Serve static files"""
-    return send_from_directory('static', filename)
+    try:
+        return send_from_directory('static', filename)
+    except Exception as e:
+        logger.error(f"Error serving static file {filename}: {e}")
+        return f"Error loading file: {filename}", 404
 
 @app.route('/dashboard')
 def dashboard():
     """Serve web dashboard"""
-    return send_from_directory('static', 'index.html')
+    try:
+        return send_from_directory('static', 'index.html')
+    except Exception as e:
+        logger.error(f"Error serving dashboard: {e}")
+        return """
+        <h1>Dashboard Error</h1>
+        <p>Dashboard tidak dapat dimuat. Pastikan file static/index.html tersedia.</p>
+        <p><a href="/">Kembali ke halaman utama</a></p>
+        """, 500
 
 @app.route('/api/alerts/create', methods=['POST'])
 def create_alert():
@@ -1025,6 +1037,13 @@ def home():
 
 
 if __name__ == "__main__":
+    # Initialize database untuk alert system
+    try:
+        alert_system.setup_database()
+        print("✅ Alert system database initialized")
+    except Exception as e:
+        print(f"⚠️ Alert system initialization warning: {e}")
+    
     # Start alert monitoring
     print("🔔 Starting alert monitoring system...")
     alert_thread = threading.Thread(target=start_alert_monitoring, daemon=True)
@@ -1043,5 +1062,6 @@ if __name__ == "__main__":
         print("💡 Tambahkan token ke Secrets untuk mengaktifkan bot Telegram.")
     
     print("🌐 Starting web server...")
-    print("📊 Dashboard available at: http://localhost:8080/dashboard")
+    print("📊 Dashboard available at: http://0.0.0.0:8080/dashboard")
+    print("🔗 Public URL akan tersedia setelah deploy")
     app.run(host='0.0.0.0', port=8080, debug=False)
