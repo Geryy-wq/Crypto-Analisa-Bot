@@ -84,7 +84,7 @@ def get_onchain_data(symbol):
         if 'BTC' in symbol:
             # Menggunakan multiple endpoints untuk data Bitcoin yang lebih lengkap
             btc_data = {}
-            
+
             # 1. Data dari Blockchain.info
             try:
                 url = "https://api.blockchain.info/stats"
@@ -100,7 +100,7 @@ def get_onchain_data(symbol):
                     })
             except:
                 pass
-            
+
             # 2. Data dari Mempool.space (untuk informasi mempool yang lebih akurat)
             try:
                 mempool_url = "https://mempool.space/api/mempool"
@@ -114,7 +114,7 @@ def get_onchain_data(symbol):
                     })
             except:
                 pass
-            
+
             # 3. Data network dari Mempool.space
             try:
                 network_url = "https://mempool.space/api/v1/difficulty-adjustment"
@@ -128,7 +128,7 @@ def get_onchain_data(symbol):
                     })
             except:
                 pass
-            
+
             return btc_data if btc_data else {"error": "Gagal mengambil data Bitcoin"}
 
         # Untuk Ethereum menggunakan Etherscan API
@@ -136,9 +136,9 @@ def get_onchain_data(symbol):
             etherscan_api_key = os.getenv('ETHERSCAN_API_KEY')
             if not etherscan_api_key:
                 return {"error": "ETHERSCAN_API_KEY tidak ditemukan di secrets"}
-            
+
             eth_data = {}
-            
+
             # 1. ETH Total Supply
             try:
                 supply_url = f"https://api.etherscan.io/api?module=stats&action=ethsupply&apikey={etherscan_api_key}"
@@ -149,7 +149,7 @@ def get_onchain_data(symbol):
                         eth_data['total_supply'] = int(supply_data['result']) / 10**18
             except:
                 pass
-            
+
             # 2. Gas Price
             try:
                 gas_url = f"https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey={etherscan_api_key}"
@@ -164,7 +164,7 @@ def get_onchain_data(symbol):
                         })
             except:
                 pass
-            
+
             # 3. Latest Block Number
             try:
                 block_url = f"https://api.etherscan.io/api?module=proxy&action=eth_blockNumber&apikey={etherscan_api_key}"
@@ -175,7 +175,7 @@ def get_onchain_data(symbol):
                         eth_data['latest_block'] = int(block_data['result'], 16)
             except:
                 pass
-            
+
             # 4. Node Count dari Ethernodes.org
             try:
                 nodes_url = "https://www.ethernodes.org/api/nodes"
@@ -185,7 +185,7 @@ def get_onchain_data(symbol):
                     eth_data['total_nodes'] = nodes_data.get('total', 0)
             except:
                 pass
-            
+
             return eth_data if eth_data else {"error": "Gagal mengambil data Ethereum"}
 
         # Untuk cryptocurrency lainnya, gunakan CoinGecko API untuk data yang tersedia
@@ -195,10 +195,10 @@ def get_onchain_data(symbol):
                 coin_id = symbol.split('/')[0].lower()  # Ambil base currency
                 if coin_id == 'btc': coin_id = 'bitcoin'
                 elif coin_id == 'eth': coin_id = 'ethereum'
-                
+
                 url = f"https://api.coingecko.com/api/v3/coins/{coin_id}"
                 response = requests.get(url, timeout=10)
-                
+
                 if response.status_code == 200:
                     data = response.json()
                     return {
@@ -211,7 +211,7 @@ def get_onchain_data(symbol):
                     }
                 else:
                     return {"error": f"Data tidak tersedia untuk {symbol}"}
-                    
+
             except Exception as e:
                 return {"error": f"Gagal mengambil data untuk {symbol}: {str(e)}"}
 
@@ -222,50 +222,50 @@ def get_onchain_data(symbol):
 def detect_candlestick_patterns(df):
     """Deteksi pola candlestick penting"""
     patterns = []
-    
+
     try:
         # Pastikan data cukup untuk analisis pattern
         if len(df) < 3:
             return patterns
-            
+
         # Analisis manual untuk pola sederhana
         latest = df.iloc[-1]
         prev = df.iloc[-2] if len(df) > 1 else latest
-        
+
         # Doji pattern - open hampir sama dengan close
         body_size = abs(latest['close'] - latest['open'])
         total_range = latest['high'] - latest['low']
-        
+
         if total_range > 0 and body_size / total_range < 0.1:
             patterns.append("Doji - Indecision pattern")
-        
+
         # Hammer pattern - small body, long lower shadow
         lower_shadow = latest['open'] - latest['low'] if latest['open'] < latest['close'] else latest['close'] - latest['low']
         upper_shadow = latest['high'] - max(latest['open'], latest['close'])
-        
+
         if total_range > 0 and lower_shadow > 2 * body_size and upper_shadow < body_size:
             patterns.append("Hammer - Bullish reversal")
-        
+
         # Engulfing pattern - current candle body engulfs previous
         if len(df) > 1:
             curr_body_high = max(latest['open'], latest['close'])
             curr_body_low = min(latest['open'], latest['close'])
             prev_body_high = max(prev['open'], prev['close'])
             prev_body_low = min(prev['open'], prev['close'])
-            
+
             # Bullish engulfing
             if (latest['close'] > latest['open'] and prev['close'] < prev['open'] and 
                 curr_body_low < prev_body_low and curr_body_high > prev_body_high):
                 patterns.append("Bullish Engulfing - Strong bullish signal")
-            
+
             # Bearish engulfing
             elif (latest['close'] < latest['open'] and prev['close'] > prev['open'] and 
                   curr_body_low < prev_body_low and curr_body_high > prev_body_high):
                 patterns.append("Bearish Engulfing - Strong bearish signal")
-    
+
     except Exception as e:
         print(f"DEBUG: Error in pattern detection: {e}")
-    
+
     return patterns
 
 
@@ -552,7 +552,7 @@ def get_realtime_data(symbol):
         validated_symbol = validate_symbol(symbol)
         exchange = ccxt.binance()
         ticker = exchange.fetch_ticker(validated_symbol)
-        
+
         # Safely get order book
         try:
             order_book = exchange.fetch_order_book(validated_symbol, limit=10)
@@ -582,10 +582,10 @@ def get_fibonacci_only(symbol):
         validated_symbol = validate_symbol(symbol)
         exchange = ccxt.binance()
         ohlcv = exchange.fetch_ohlcv(validated_symbol, '1d', limit=50)
-        
+
         if not ohlcv or len(ohlcv) < 10:
             return jsonify({"error": "Insufficient data for Fibonacci calculation"}), 400
-            
+
         df = pd.DataFrame(
             ohlcv,
             columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
@@ -620,12 +620,12 @@ def start_telegram_bot_thread():
     """Start Telegram bot in a separate thread"""
     import logging
     logger = logging.getLogger(__name__)
-    
+
     global telegram_bot
-    
+
     try:
         logger.info("🔄 Starting telegram bot thread...")
-        
+
         # Set event loop untuk thread ini
         try:
             loop = asyncio.get_event_loop()
@@ -633,15 +633,15 @@ def start_telegram_bot_thread():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             logger.info("🔄 Created new event loop for thread")
-        
+
         telegram_bot = start_telegram_bot()
-        
+
         if telegram_bot:
             logger.info("🚀 Starting Telegram Bot in background...")
             telegram_bot.run()
         else:
             logger.error("❌ Failed to create telegram bot instance")
-            
+
     except Exception as e:
         logger.error(f"❌ Error starting Telegram bot thread: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
@@ -650,15 +650,15 @@ def run_bot_directly():
     """Alternative: Run bot directly in main thread"""
     import logging
     logger = logging.getLogger(__name__)
-    
+
     try:
         logger.info("🔄 Starting bot directly in main thread...")
         bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-        
+
         if bot_token:
             from telegram_bot import CryptoTelegramBot
             bot = CryptoTelegramBot(bot_token)
-            
+
             # Run bot dengan polling sederhana
             logger.info("🚀 Starting bot polling...")
             bot.application.run_polling(
@@ -669,7 +669,7 @@ def run_bot_directly():
             )
         else:
             logger.error("❌ No bot token found")
-            
+
     except Exception as e:
         logger.error(f"❌ Error running bot directly: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
@@ -679,13 +679,13 @@ def start_telegram():
     """Endpoint untuk memulai Telegram bot"""
     import logging
     logger = logging.getLogger(__name__)
-    
+
     try:
         logger.info("📥 Request to start Telegram bot received")
-        
+
         bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
         logger.info(f"🔍 Bot token check: {'Found' if bot_token else 'Not found'}")
-        
+
         if not bot_token:
             return jsonify({
                 "error": "TELEGRAM_BOT_TOKEN tidak ditemukan. Silakan tambahkan ke Secrets!",
@@ -695,17 +695,17 @@ def start_telegram():
                     "checked_token": bool(bot_token)
                 }
             }), 400
-        
+
         # Start bot in background thread
         if not telegram_bot:
             logger.info("🚀 Creating new bot thread...")
             thread = threading.Thread(target=start_telegram_bot_thread, daemon=True)
             thread.start()
-            
+
             # Wait a bit to see if bot starts successfully
             import time
             time.sleep(2)
-            
+
             return jsonify({
                 "status": "success",
                 "message": "Telegram bot sedang dimulai...",
@@ -722,7 +722,7 @@ def start_telegram():
                 "message": "Telegram bot sudah berjalan",
                 "bot_token_available": True
             })
-            
+
     except Exception as e:
         logger.error(f"❌ Error in start_telegram endpoint: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
@@ -738,7 +738,7 @@ def start_telegram():
 def telegram_status():
     """Check status Telegram bot"""
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-    
+
     # Detailed debug info
     debug_info = {
         "bot_configured": bot_token is not None,
@@ -751,10 +751,10 @@ def telegram_status():
             "start": "Kunjungi /api/telegram/start untuk memulai bot"
         }
     }
-    
+
     if bot_token:
         debug_info["token_preview"] = f"{bot_token[:10]}...{bot_token[-10:]}"
-    
+
     return jsonify(debug_info)
 
 @app.route('/api/telegram/run-direct')
@@ -764,17 +764,17 @@ def run_telegram_direct():
         bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
         if not bot_token:
             return jsonify({"error": "No bot token found"}), 400
-            
+
         # Import dan test bot
         from telegram_bot import CryptoTelegramBot
         test_bot = CryptoTelegramBot(bot_token)
-        
+
         return jsonify({
             "status": "success",
             "message": "Bot instance created successfully",
             "note": "Bot is ready to receive commands. Try sending /start to your bot on Telegram"
         })
-        
+
     except Exception as e:
         return jsonify({
             "error": f"Failed to create bot: {str(e)}",
@@ -786,7 +786,7 @@ def telegram_debug():
     """Debug endpoint untuk troubleshooting bot"""
     try:
         bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-        
+
         debug_data = {
             "timestamp": datetime.now().isoformat(),
             "bot_token_exists": bool(bot_token),
@@ -796,7 +796,7 @@ def telegram_debug():
                 "telegram_related_vars": [k for k in os.environ.keys() if 'telegram' in k.lower() or 'bot' in k.lower()],
             }
         }
-        
+
         if bot_token:
             debug_data["token_analysis"] = {
                 "length": len(bot_token),
@@ -805,7 +805,7 @@ def telegram_debug():
                 "starts_with_digit": bot_token[0].isdigit() if bot_token else False,
                 "format_looks_valid": len(bot_token) > 20 and bot_token.count(':') == 1
             }
-            
+
             # Test koneksi ke Telegram API
             try:
                 import requests
@@ -820,9 +820,9 @@ def telegram_debug():
                     "error": str(api_error),
                     "error_type": type(api_error).__name__
                 }
-        
+
         return jsonify(debug_data)
-        
+
     except Exception as e:
         return jsonify({
             "error": str(e),
@@ -862,10 +862,10 @@ def create_alert():
         alert_type = data.get('alert_type')
         condition = data.get('condition')
         value = data.get('value')
-        
+
         if not all([symbol, alert_type, condition, value]):
             return jsonify({"error": "Missing required fields"}), 400
-            
+
         if alert_type == 'PRICE':
             alert_id = alert_system.create_price_alert(user_id, symbol, condition, value)
         elif alert_type == 'PERCENTAGE':
@@ -874,13 +874,13 @@ def create_alert():
             alert_id = alert_system.create_volume_alert(user_id, symbol, value)
         else:
             return jsonify({"error": "Invalid alert type"}), 400
-            
+
         return jsonify({
             "success": True,
             "alert_id": alert_id,
             "message": "Alert created successfully"
         })
-        
+
     except Exception as e:
         return jsonify({"error": f"Failed to create alert: {str(e)}"}), 500
 
@@ -902,14 +902,14 @@ def delete_alert(alert_id):
     try:
         data = request.json
         user_id = data.get('user_id', 'web_user')
-        
+
         success = alert_system.delete_alert(alert_id, user_id)
-        
+
         if success:
             return jsonify({"success": True, "message": "Alert deleted"})
         else:
             return jsonify({"error": "Alert not found or unauthorized"}), 404
-            
+
     except Exception as e:
         return jsonify({"error": f"Failed to delete alert: {str(e)}"}), 500
 
@@ -929,11 +929,11 @@ def start_alert_monitoring():
     """Background thread for monitoring alerts"""
     import logging
     logger = logging.getLogger(__name__)
-    
+
     while True:
         try:
             triggered_alerts = alert_system.check_alerts()
-            
+
             # Send triggered alerts to Telegram bot if available
             if triggered_alerts and telegram_bot:
                 for alert in triggered_alerts:
@@ -943,28 +943,28 @@ def start_alert_monitoring():
                         message = alert.get('message', 'Alert triggered')
                         symbol = alert.get('symbol', '')
                         price = alert.get('price', 0)
-                        
+
                         # Format notification message
                         notification = f"🚨 *ALERT TRIGGERED!*\n\n"
                         notification += f"📊 Symbol: {symbol}\n"
                         notification += f"💰 Price: ${price:,.2f}\n"
                         notification += f"🔔 Message: {message}\n"
                         notification += f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}"
-                        
+
                         # Send via Telegram bot if user_id is valid
                         if user_id and user_id.isdigit():
                             asyncio.run_coroutine_threadsafe(
                                 send_telegram_alert(user_id, notification),
                                 telegram_bot.application.updater._loop
                             )
-                        
+
                         logger.info(f"🔔 Alert sent to user {user_id}: {message}")
                     except Exception as telegram_error:
                         logger.error(f"Failed to send Telegram alert: {telegram_error}")
-                        
+
         except Exception as e:
             logger.error(f"Error in alert monitoring: {e}")
-            
+
         # Check alerts every 60 seconds
         time.sleep(60)
 
@@ -984,7 +984,7 @@ async def send_telegram_alert(user_id, message):
 def home():
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     bot_status = "✅ Dikonfigurasi" if bot_token else "❌ Belum dikonfigurasi"
-    
+
     return f"""
     <h1>🚀 Advanced Crypto Trading API</h1>
     <h2>🆕 New Features:</h2>
@@ -1043,12 +1043,12 @@ if __name__ == "__main__":
         print("✅ Alert system database initialized")
     except Exception as e:
         print(f"⚠️ Alert system initialization warning: {e}")
-    
+
     # Start alert monitoring
     print("🔔 Starting alert monitoring system...")
     alert_thread = threading.Thread(target=start_alert_monitoring, daemon=True)
     alert_thread.start()
-    
+
     # Auto-start Telegram bot jika token tersedia
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     if bot_token:
@@ -1060,8 +1060,16 @@ if __name__ == "__main__":
     else:
         print("⚠️ TELEGRAM_BOT_TOKEN tidak ditemukan. Bot tidak akan dimulai.")
         print("💡 Tambahkan token ke Secrets untuk mengaktifkan bot Telegram.")
-    
+
     print("🌐 Starting web server...")
     print("📊 Dashboard available at: http://0.0.0.0:8080/dashboard")
     print("🔗 Public URL akan tersedia setelah deploy")
+    # Base URL untuk API crypto - gunakan localhost untuk internal calls
+    API_BASE_URL = "http://127.0.0.1:8080/api"
+    # Base URL untuk API crypto - gunakan localhost untuk internal calls
+    API_BASE_URL = "http://127.0.0.1:8080/api"
+    # Base URL untuk API crypto - gunakan localhost untuk internal calls
+    API_BASE_URL = "http://127.0.0.1:8080/api"
+    # Base URL untuk API crypto - gunakan localhost untuk internal calls
+    API_BASE_URL = "http://127.0.0.1:8080/api"
     app.run(host='0.0.0.0', port=8080, debug=False)

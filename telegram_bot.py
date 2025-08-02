@@ -23,8 +23,8 @@ logging.getLogger('telegram').setLevel(logging.DEBUG)
 logging.getLogger('telegram.ext').setLevel(logging.DEBUG)
 logging.getLogger('httpx').setLevel(logging.DEBUG)
 
-# Base URL untuk API crypto
-API_BASE_URL = "https://55403a64-ed5e-4425-b033-dd22f8913372-00-39aa7sqx84i6h.sisko.replit.dev/api"
+# Base URL untuk API crypto - gunakan localhost untuk internal calls
+API_BASE_URL = "http://127.0.0.1:8080/api"
 
 class CryptoTelegramBot:
     def __init__(self, token):
@@ -182,15 +182,29 @@ BTC/USDT, ETH/USDT, BNB/USDT, SOL/USDT, ADA/USDT
                 "timeframe": timeframe
             }, timeout=30)
             
+            logger.debug(f"API Response status: {response.status_code}")
+            logger.debug(f"API Response text: {response.text[:200]}...")
+            
             if response.status_code == 200:
-                data = response.json()
-                analysis_text = self.format_analysis(data)
-                await update.message.reply_text(analysis_text, parse_mode='Markdown')
+                try:
+                    data = response.json()
+                    analysis_text = self.format_analysis(data)
+                    await update.message.reply_text(analysis_text, parse_mode='Markdown')
+                except ValueError as json_error:
+                    logger.error(f"JSON parsing error: {json_error}")
+                    await update.message.reply_text(f"❌ Error parsing response: {str(json_error)}")
             else:
-                error_data = response.json()
-                await update.message.reply_text(f"❌ Error: {error_data.get('error', 'Unknown error')}")
+                try:
+                    error_data = response.json()
+                    await update.message.reply_text(f"❌ Error: {error_data.get('error', 'Unknown error')}")
+                except:
+                    await update.message.reply_text(f"❌ HTTP Error {response.status_code}: {response.text[:100]}")
                 
+        except requests.exceptions.RequestException as req_error:
+            logger.error(f"Request error: {req_error}")
+            await update.message.reply_text(f"❌ Connection error: {str(req_error)}")
         except Exception as e:
+            logger.error(f"Unexpected error: {e}")
             await update.message.reply_text(f"❌ Gagal mengambil data: {str(e)}")
 
     async def price_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -205,13 +219,21 @@ BTC/USDT, ETH/USDT, BNB/USDT, SOL/USDT, ADA/USDT
             response = requests.get(f"{API_BASE_URL}/realtime/{symbol}", timeout=10)
             
             if response.status_code == 200:
-                data = response.json()
-                price_text = self.format_price_data(data)
-                await update.message.reply_text(price_text, parse_mode='Markdown')
+                try:
+                    data = response.json()
+                    price_text = self.format_price_data(data)
+                    await update.message.reply_text(price_text, parse_mode='Markdown')
+                except ValueError as json_error:
+                    await update.message.reply_text(f"❌ Error parsing price data: {str(json_error)}")
             else:
-                error_data = response.json()
-                await update.message.reply_text(f"❌ Error: {error_data.get('error', 'Unknown error')}")
+                try:
+                    error_data = response.json()
+                    await update.message.reply_text(f"❌ Error: {error_data.get('error', 'Unknown error')}")
+                except:
+                    await update.message.reply_text(f"❌ HTTP Error {response.status_code}")
                 
+        except requests.exceptions.RequestException as req_error:
+            await update.message.reply_text(f"❌ Connection error: {str(req_error)}")
         except Exception as e:
             await update.message.reply_text(f"❌ Gagal mengambil data harga: {str(e)}")
 
