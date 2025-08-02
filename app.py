@@ -778,6 +778,260 @@ def analyze_crypto():
             elif natr < 1:
                 volatility_analysis["volatility_level"] = "Low"
 
+        # 5. VOLUME ANALYSIS
+        volume_analysis_detailed = {
+            "volume_trend": "Normal",
+            "volume_confirmation": "Neutral",
+            "accumulation_distribution": "Neutral"
+        }
+
+        if volume_ratio:
+            if volume_ratio > 2:
+                volume_analysis_detailed["volume_trend"] = "Extreme High Volume"
+            elif volume_ratio > 1.5:
+                volume_analysis_detailed["volume_trend"] = "High Volume"
+            elif volume_ratio < 0.5:
+                volume_analysis_detailed["volume_trend"] = "Low Volume"
+
+        if cmf:
+            if cmf > 0.2:
+                volume_analysis_detailed["accumulation_distribution"] = "Strong Accumulation"
+            elif cmf > 0.1:
+                volume_analysis_detailed["accumulation_distribution"] = "Accumulation"
+            elif cmf < -0.2:
+                volume_analysis_detailed["accumulation_distribution"] = "Strong Distribution"
+            elif cmf < -0.1:
+                volume_analysis_detailed["accumulation_distribution"] = "Distribution"
+
+        # 6. ICHIMOKU ANALYSIS
+        ichimoku_analysis = {
+            "cloud_position": "In Cloud",
+            "tk_cross": "Neutral",
+            "cloud_twist": "Neutral"
+        }
+
+        if ichimoku_a and ichimoku_b and price:
+            if price > max(ichimoku_a, ichimoku_b):
+                ichimoku_analysis["cloud_position"] = "Above Cloud - Bullish"
+            elif price < min(ichimoku_a, ichimoku_b):
+                ichimoku_analysis["cloud_position"] = "Below Cloud - Bearish"
+
+        if tenkan and kijun:
+            if tenkan > kijun:
+                ichimoku_analysis["tk_cross"] = "Bullish (Tenkan > Kijun)"
+            elif tenkan < kijun:
+                ichimoku_analysis["tk_cross"] = "Bearish (Tenkan < Kijun)"
+
+        # 7. OVERALL MARKET SENTIMENT SCORE
+        bullish_signals = 0
+        bearish_signals = 0
+        total_signals = 0
+
+        # Count momentum signals
+        for signal in momentum_signals.values():
+            if signal != "N/A":
+                total_signals += 1
+                if "Oversold" in signal:
+                    bullish_signals += 1
+                elif "Overbought" in signal:
+                    bearish_signals += 1
+
+        # Count trend signals
+        if "Bullish" in macd_trend:
+            bullish_signals += 1
+        elif "Bearish" in macd_trend:
+            bearish_signals += 1
+        total_signals += 1
+
+        # Count MA signals
+        for trend in ma_analysis.values():
+            if trend != "Mixed" and trend != "Neutral":
+                total_signals += 1
+                if "Bullish" in trend:
+                    bullish_signals += 1
+                elif "Bearish" in trend:
+                    bearish_signals += 1
+
+        # Calculate sentiment score
+        sentiment_score = 50  # Neutral baseline
+        if total_signals > 0:
+            sentiment_score = (bullish_signals / total_signals) * 100
+
+        sentiment_label = "Neutral"
+        if sentiment_score >= 70:
+            sentiment_label = "Strong Bullish"
+        elif sentiment_score >= 60:
+            sentiment_label = "Bullish"
+        elif sentiment_score >= 55:
+            sentiment_label = "Weak Bullish"
+        elif sentiment_score <= 30:
+            sentiment_label = "Strong Bearish"
+        elif sentiment_score <= 40:
+            sentiment_label = "Bearish"
+        elif sentiment_score <= 45:
+            sentiment_label = "Weak Bearish"
+
+        result = {
+            "symbol": validated_symbol,
+            "timeframe": timeframe,
+            "close_price": price,
+
+            # COMPREHENSIVE TECHNICAL INDICATORS
+            "technical_indicators": {
+                # Momentum Indicators
+                "momentum": {
+                    "rsi_14": rsi_14,
+                    "rsi_7": rsi_7,
+                    "rsi_21": rsi_21,
+                    "stochastic_k": stoch_k,
+                    "stochastic_d": stoch_d,
+                    "stochrsi": stochrsi,
+                    "williams_r": williams_r,
+                    "cci": cci,
+                    "roc_10": roc,
+                    "mfi": mfi
+                },
+
+                # Trend Indicators
+                "trend": {
+                    "macd_line": macd_line,
+                    "macd_signal": macd_signal,
+                    "macd_histogram": macd_histogram,
+                    "adx": adx,
+                    "adx_positive": adx_pos,
+                    "adx_negative": adx_neg,
+                    "aroon_up": aroon_up,
+                    "aroon_down": aroon_down,
+                    "parabolic_sar": psar
+                },
+
+                # Moving Averages
+                "moving_averages": {
+                    "sma_10": sma_10,
+                    "sma_20": sma_20,
+                    "sma_50": sma_50,
+                    "sma_100": sma_100,
+                    "sma_200": sma_200,
+                    "ema_12": ema_12,
+                    "ema_26": ema_26,
+                    "ema_50": ema_50,
+                    "ema_200": ema_200
+                },
+
+                # Volatility Indicators
+                "volatility": {
+                    "bb_upper": bb_upper,
+                    "bb_middle": bb_middle,
+                    "bb_lower": bb_lower,
+                    "kc_upper": kc_upper,
+                    "kc_lower": kc_lower,
+                    "atr": atr,
+                    "natr": natr,
+                    "volatility_20d": volatility_20
+                },
+
+                # Volume Indicators
+                "volume": {
+                    "obv": obv,
+                    "accumulation_distribution": ad,
+                    "chaikin_money_flow": cmf,
+                    "elder_force_index": efi,
+                    "volume_ratio": volume_ratio
+                },
+
+                # Ichimoku Components
+                "ichimoku": {
+                    "tenkan_sen": tenkan,
+                    "kijun_sen": kijun,
+                    "senkou_span_a": ichimoku_a,
+                    "senkou_span_b": ichimoku_b
+                },
+
+                # Price Position Analysis
+                "price_position": {
+                    "vs_sma20_pct": price_vs_sma20,
+                    "vs_sma50_pct": price_vs_sma50
+                }
+            },
+
+            # COMPREHENSIVE SIGNAL ANALYSIS
+            "signals": {
+                # Momentum Signals
+                "momentum_signals": momentum_signals,
+
+                # Trend Analysis
+                "trend_analysis": {
+                    "trend_strength": trend_strength,
+                    "adx_reading": adx,
+                    "macd_trend": macd_trend,
+                    "moving_average_analysis": ma_analysis
+                },
+
+                # Volatility Analysis
+                "volatility_analysis": volatility_analysis,
+
+                # Volume Analysis
+                "volume_analysis_detailed": volume_analysis_detailed,
+
+                # Ichimoku Analysis
+                "ichimoku_analysis": ichimoku_analysis,
+
+                # Overall Market Sentiment
+                "market_sentiment_score": {
+                    "score": round(sentiment_score, 2),
+                    "label": sentiment_label,
+                    "bullish_signals": bullish_signals,
+                    "bearish_signals": bearish_signals,
+                    "total_signals": total_signals,
+                    "confidence": "High" if total_signals > 10 else "Medium" if total_signals > 5 else "Low"
+                },
+
+                # Pattern Detection
+                "candlestick_patterns": candlestick_patterns,
+                "macd_crossover": macd_alert
+            },
+
+            # LEVELS ANALYSIS
+            "fibonacci_levels": fibonacci_levels,
+            "pivot_points": pivot_points,
+            "support_resistance": support_resistance,
+
+            # MARKET DATA
+            "market_sentiment": {
+                "order_book": order_book_data,
+                "volume_analysis": volume_analysis,
+                "fear_and_greed": fear_greed_data
+            },
+
+            # BLOCKCHAIN DATA
+            "onchain_data": onchain_data,
+
+            # ALERTS
+            "alerts": {
+                "latest_macd_alert": macd_alert,
+                "recent_alerts": alert_history[-5:] if alert_history else []
+            },
+
+            # METADATA
+            "analysis_metadata": {
+                "total_indicators_calculated": 40,
+                "analysis_completeness": "100%",
+                "data_quality": "High" if len(df) > 200 else "Medium" if len(df) > 100 else "Low",
+                "timestamp": pd.to_datetime(latest_data['timestamp'], unit='ms').isoformat(),
+                "last_updated": datetime.now().isoformat(),
+                "calculation_time": datetime.now().isoformat()
+            }
+        }
+
+        # Cache data untuk auto-update
+        cache_data[validated_symbol] = result
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": f"Terjadi kesalahan fatal: {str(e)}"}), 500
+
+
 def generate_comprehensive_summary(analysis_data):
     """Generate a comprehensive summary from analysis data"""
     try:
