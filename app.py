@@ -724,7 +724,6 @@ def analyze_crypto():
 
         if price and sma_10 and sma_20:
             if price > sma_10 > sma_20:
-```python
                 ma_analysis["short_term_trend"] = "Bullish"
             elif price < sma_10 < sma_20:
                 ma_analysis["short_term_trend"] = "Bearish"
@@ -762,6 +761,54 @@ def analyze_crypto():
             if bb_position > 0.8:
                 volatility_analysis["bb_position"] = "Upper Band - Overbought"
             elif bb_position < 0.2:
+                volatility_analysis["bb_position"] = "Lower Band - Oversold"
+            elif bb_position > 0.6:
+                volatility_analysis["bb_position"] = "Above Middle - Bullish"
+            elif bb_position < 0.4:
+                volatility_analysis["bb_position"] = "Below Middle - Bearish"
+
+        if natr:
+            if natr > 3:
+                volatility_analysis["volatility_level"] = "Very High"
+            elif natr > 2:
+                volatility_analysis["volatility_level"] = "High"
+            elif natr < 1:
+                volatility_analysis["volatility_level"] = "Low"
+
+def generate_comprehensive_summary(analysis_data):
+    """Generate a comprehensive summary from analysis data"""
+    try:
+        signals = analysis_data.get('signals', {})
+        technical_indicators = analysis_data.get('technical_indicators', {})
+        
+        # Market sentiment
+        sentiment_score = signals.get('market_sentiment_score', {})
+        sentiment_label = sentiment_score.get('label', 'Neutral')
+        score = sentiment_score.get('score', 50)
+        
+        # Key indicators
+        momentum = technical_indicators.get('momentum', {})
+        trend = technical_indicators.get('trend', {})
+        
+        rsi = momentum.get('rsi_14', 50)
+        macd_line = trend.get('macd_line', 0)
+        macd_signal = trend.get('macd_signal', 0)
+        
+        summary = {
+            "overall_sentiment": {
+                "label": sentiment_label,
+                "score": score,
+                "recommendation": "BUY" if score > 60 else "SELL" if score < 40 else "HOLD"
+            },
+            "key_levels": analysis_data.get('support_resistance', {}),
+            "momentum_status": "Overbought" if rsi > 70 else "Oversold" if rsi < 30 else "Neutral",
+            "trend_status": "Bullish" if macd_line > macd_signal else "Bearish",
+            "risk_level": "High" if score > 70 or score < 30 else "Medium"
+        }
+        
+        return summary
+    except Exception as e:
+        return {"error": f"Failed to generate summary: {str(e)}"}
 
 @app.route('/api/analyze/summary/<path:symbol>')
 def get_comprehensive_summary(symbol):
@@ -855,21 +902,6 @@ def get_all_indicators(symbol):
 
     except Exception as e:
         return jsonify({"error": f"Failed to get indicators: {str(e)}"}), 500
-
-
-                volatility_analysis["bb_position"] = "Lower Band - Oversold"
-            elif bb_position > 0.6:
-                volatility_analysis["bb_position"] = "Above Middle - Bullish"
-            elif bb_position < 0.4:
-                volatility_analysis["bb_position"] = "Below Middle - Bearish"
-
-        if natr:
-            if natr > 3:
-                volatility_analysis["volatility_level"] = "Very High"
-            elif natr > 2:
-                volatility_analysis["volatility_level"] = "High"
-            elif natr < 1:
-                volatility_analysis["volatility_level"] = "Low"
 
         # 5. VOLUME ANALYSIS
         volume_analysis_detailed = {
@@ -1702,7 +1734,31 @@ def home():
                 <li>PVT</li>
             </ul>
         </div>
-    </div></ul>"""
+    </div>
+    <h2>Telegram Bot:</h2>
+    <ul>
+        <li><a href="/api/telegram/status">📊 Status Telegram Bot</a></li>
+        <li><a href="/api/telegram/start">🚀 Start Telegram Bot</a></li>
+        <li><a href="/api/telegram/debug">🔧 Debug Telegram Bot</a></li>
+    </ul>
+    <h3>Test Links:</h3>
+    <ul>
+        <li><a href="/api/analyze?symbol=BTC/USDT&timeframe=1d">Test Analyze BTC/USDT</a></li>
+        <li><a href="/api/realtime/BTC/USDT">Test Realtime BTC/USDT</a></li>
+        <li><a href="/api/fibonacci/BTC/USDT">Test Fibonacci BTC/USDT</a></li>
+    </ul>
+    <div style="background-color: #f0f8ff; padding: 15px; border-radius: 5px; margin-top: 20px;">
+        <h3>🤖 Setup Telegram Bot:</h3>
+        <ol>
+            <li>Chat dengan <strong>@BotFather</strong> di Telegram</li>
+            <li>Gunakan command <strong>/newbot</strong></li>
+            <li>Ikuti instruksi untuk membuat bot baru</li>
+            <li>Salin token yang diberikan BotFather</li>
+            <li>Tambahkan token ke <strong>Secrets</strong> dengan key <strong>TELEGRAM_BOT_TOKEN</strong></li>
+            <li>Kunjungi <a href="/api/telegram/start">/api/telegram/start</a> untuk memulai bot</li>
+        </ol>
+    </div>
+    """
     <h2>Telegram Bot:</h2>
     <ul>
         <li><a href="/api/telegram/status">📊 Status Telegram Bot</a></li>
