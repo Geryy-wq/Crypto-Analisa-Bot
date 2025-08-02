@@ -77,6 +77,43 @@ def calculate_pivot_points(high, low, close):
     }
 
 
+def calculate_support_resistance(df, period=20):
+    """Hitung level support dan resistance berdasarkan high/low"""
+    try:
+        if len(df) < period:
+            return {"error": "Insufficient data for support/resistance calculation"}
+        
+        # Ambil data high dan low
+        highs = df['high'].tail(period)
+        lows = df['low'].tail(period)
+        
+        # Hitung resistance levels (dari high terbesar)
+        resistance_levels = sorted(highs.nlargest(5).values, reverse=True)
+        
+        # Hitung support levels (dari low terkecil)
+        support_levels = sorted(lows.nsmallest(5).values)
+        
+        # Current price untuk referensi
+        current_price = df.iloc[-1]['close']
+        
+        # Filter levels yang masuk akal (dalam range tertentu)
+        price_range = current_price * 0.15  # 15% dari harga current
+        
+        valid_resistance = [r for r in resistance_levels if current_price < r <= current_price + price_range]
+        valid_support = [s for s in support_levels if current_price - price_range <= s < current_price]
+        
+        return {
+            'current_price': current_price,
+            'resistance_levels': valid_resistance[:3],  # Top 3
+            'support_levels': valid_support[:3],  # Top 3
+            'nearest_resistance': min(valid_resistance) if valid_resistance else None,
+            'nearest_support': max(valid_support) if valid_support else None
+        }
+        
+    except Exception as e:
+        return {"error": f"Error calculating support/resistance: {str(e)}"}
+
+
 def get_onchain_data(symbol):
     """Ambil data on-chain dari API blockchain explorer"""
     try:
@@ -381,6 +418,9 @@ def analyze_crypto():
                                               prev_day['low'],
                                               prev_day['close'])
 
+        # --- 3.1. SUPPORT & RESISTANCE LEVELS ---
+        support_resistance = calculate_support_resistance(df, period=50)
+
         # --- 4. REAL-TIME VOLUME ANALYSIS ---
         volume_analysis = get_realtime_volume_analysis(validated_symbol)
 
@@ -496,6 +536,8 @@ def analyze_crypto():
             fibonacci_levels,
             "pivot_points":
             pivot_points,
+            "support_resistance":
+            support_resistance,
             "signals": {
                 "trend_signal": trend_signal,
                 "rsi_signal": rsi_signal,
