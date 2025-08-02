@@ -23,8 +23,8 @@ logging.getLogger('telegram').setLevel(logging.DEBUG)
 logging.getLogger('telegram.ext').setLevel(logging.DEBUG)
 logging.getLogger('httpx').setLevel(logging.DEBUG)
 
-# Base URL untuk API crypto - gunakan localhost untuk internal calls
-API_BASE_URL = "http://127.0.0.1:8080/api"
+# Base URL untuk API crypto - use proper internal URL
+API_BASE_URL = "http://0.0.0.0:5000/api"
 
 class CryptoTelegramBot:
     def __init__(self, token):

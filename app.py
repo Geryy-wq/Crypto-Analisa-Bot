@@ -1104,14 +1104,8 @@ if __name__ == "__main__":
         print("💡 Tambahkan token ke Secrets untuk mengaktifkan bot Telegram.")
 
     print("🌐 Starting web server...")
-    print("📊 Dashboard available at: http://0.0.0.0:8080/dashboard")
+    print("📊 Dashboard available at: http://0.0.0.0:5000/dashboard")
     print("🔗 Public URL akan tersedia setelah deploy")
-    # Base URL untuk API crypto - gunakan localhost untuk internal calls
-    API_BASE_URL = "http://127.0.0.1:8080/api"
-    # Base URL untuk API crypto - gunakan localhost untuk internal calls
-    API_BASE_URL = "http://127.0.0.1:8080/api"
-    # Base URL untuk API crypto - gunakan localhost untuk internal calls
-    API_BASE_URL = "http://127.0.0.1:8080/api"
-    # Base URL untuk API crypto - gunakan localhost untuk internal calls
-    API_BASE_URL = "http://127.0.0.1:8080/api"
-    app.run(host='0.0.0.0', port=8080, debug=False)
+    # Base URL for API crypto - use proper internal URL
+    API_BASE_URL = "http://0.0.0.0:5000/api"
+    app.run(host='0.0.0.0', port=5000, debug=False)

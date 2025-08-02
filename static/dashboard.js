@@ -2,166 +2,116 @@ class CryptoDashboard {
     constructor() {
         this.currentSymbol = 'BTC/USDT';
         this.currentTimeframe = '1d';
-        this.alertSystem = new AlertManager();
         this.isDarkMode = true;
-        this.apiBase = window.location.origin; // Use current host
+        this.alerts = [];
+        this.isLoading = false;
 
         this.init();
     }
 
-    init() {
+    async init() {
         this.setupEventListeners();
-        this.loadInitialData();
+        await this.loadInitialData();
         this.startAutoRefresh();
     }
 
     setupEventListeners() {
-        // Symbol and timeframe selection
+        // Symbol selector
         document.getElementById('symbolSelect').addEventListener('change', (e) => {
             this.currentSymbol = e.target.value;
             this.loadAnalysis();
         });
 
+        // Timeframe selector
         document.getElementById('timeframeSelect').addEventListener('change', (e) => {
             this.currentTimeframe = e.target.value;
             this.loadAnalysis();
         });
 
-        // Buttons
-        document.getElementById('analyzeBtn').addEventListener('click', () => {
-            this.loadAnalysis();
-        });
-
+        // Refresh button
         document.getElementById('refreshBtn').addEventListener('click', () => {
             this.refreshAllData();
         });
 
+        // Theme toggle
         document.getElementById('themeToggle').addEventListener('click', () => {
             this.toggleTheme();
         });
 
-        // Alert creation
-        document.getElementById('createAlertBtn').addEventListener('click', () => {
+        // Alert form
+        document.getElementById('alertForm').addEventListener('submit', (e) => {
+            e.preventDefault();
             this.createAlert();
         });
 
-        // Alert type changes
+        // Alert type selector
         document.getElementById('alertType').addEventListener('change', (e) => {
-            this.updateAlertConditions(e.target.value);
+            this.updateAlertFields(e.target.value);
         });
     }
 
     async loadInitialData() {
-        this.showLoading(true);
+        this.showLoading();
         try {
             await Promise.all([
-                this.loadRealtimeData(),
                 this.loadAnalysis(),
-                this.loadFibonacciLevels(),
-                this.loadRecentAlerts()
+                this.loadRealtimeData(),
+                this.loadUserAlerts()
             ]);
         } catch (error) {
-            console.error('Error loading initial data:', error);
-            this.showError('Failed to load dashboard data');
+            this.showError('Failed to load initial data');
+            console.error('Initial data loading error:', error);
         } finally {
-            this.showLoading(false);
-        }
-    }
-
-    async loadRealtimeData() {
-        try {
-            const response = await fetch(`${this.apiBase}/api/realtime/${this.currentSymbol}`);
-            const data = await response.json();
-
-            if (response.ok) {
-                this.updatePriceCards(data);
-            } else {
-                throw new Error(data.error);
-            }
-        } catch (error) {
-            console.error('Error loading realtime data:', error);
+            this.hideLoading();
         }
     }
 
     async loadAnalysis() {
         try {
-            const response = await fetch(`${this.apiBase}/api/analyze?symbol=${this.currentSymbol}&timeframe=${this.currentTimeframe}`);
-            const data = await response.json();
+            const response = await fetch(`/api/analyze?symbol=${this.currentSymbol}&timeframe=${this.currentTimeframe}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-            if (response.ok) {
-                this.updateTechnicalAnalysis(data);
-                this.updatePriceCards(data);
-            } else {
-                throw new Error(data.error);
-            }
+            const data = await response.json();
+            this.renderAnalysis(data);
         } catch (error) {
-            console.error('Error loading analysis:', error);
-            this.showError('Failed to load technical analysis');
+            console.error('Analysis loading error:', error);
+            this.showError('Failed to load analysis data');
         }
     }
 
-    async loadFibonacciLevels() {
+    async loadRealtimeData() {
         try {
-            const response = await fetch(`${this.apiBase}/api/fibonacci/${this.currentSymbol}`);
-            const data = await response.json();
+            const response = await fetch(`/api/realtime/${this.currentSymbol}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-            if (response.ok) {
-                this.updateFibonacciLevels(data);
-            } else {
-                throw new Error(data.error);
-            }
+            const data = await response.json();
+            this.renderRealtimeData(data);
         } catch (error) {
-            console.error('Error loading Fibonacci levels:', error);
+            console.error('Realtime data loading error:', error);
+            this.showError('Failed to load realtime data');
         }
     }
 
-    async loadRecentAlerts() {
+    async loadUserAlerts() {
         try {
-            const response = await fetch(`${this.apiBase}/api/alerts/${this.currentSymbol}`);
-            const data = await response.json();
+            const response = await fetch('/api/alerts/user/web_user');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-            if (response.ok) {
-                this.updateRecentAlerts(data.alerts);
-            } else {
-                throw new Error(data.error);
-            }
+            const data = await response.json();
+            this.alerts = data.alerts || [];
+            this.renderAlerts();
         } catch (error) {
-            console.error('Error loading recent alerts:', error);
+            console.error('Alerts loading error:', error);
+            this.showError('Failed to load alerts');
         }
     }
 
-    updatePriceCards(data) {
-        // Current price
-        const price = data.close_price || data.price || 0;
-        document.getElementById('currentPrice').textContent = `$${this.formatNumber(price)}`;
-
-        // 24h change
-        const change = data.change_24h || 0;
-        const changeElement = document.getElementById('priceChange');
-        changeElement.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
-        changeElement.className = `text-2xl font-bold ${change >= 0 ? 'text-green-400' : 'text-red-400'}`;
-
-        // Volume
-        const volume = data.volume_24h || 0;
-        document.getElementById('volume24h').textContent = `$${this.formatNumber(volume)}`;
-
-        // RSI
-        const rsi = data.technical_indicators?.rsi || 0;
-        const rsiElement = document.getElementById('rsiValue');
-        rsiElement.textContent = rsi.toFixed(1);
-        rsiElement.className = `text-2xl font-bold ${
-            rsi > 70 ? 'text-red-400' : rsi < 30 ? 'text-green-400' : 'text-white'
-        }`;
-    }
-
-    updateTechnicalAnalysis(data) {
-        const container = document.getElementById('technicalAnalysis');
+    renderAnalysis(data) {
+        const container = document.getElementById('analysisData');
         const indicators = data.technical_indicators || {};
         const signals = data.signals || {};
-
-        const volumeAnalysis = data.market_sentiment?.volume_analysis || {};
-        const onchainData = data.onchain_data || {};
-        const fearGreed = data.market_sentiment?.fear_and_greed || {};
+        const fibonacci = data.fibonacci_levels || {};
+        const pivot = data.pivot_points || {};
 
         container.innerHTML = `
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -192,191 +142,180 @@ class CryptoDashboard {
                     <div class="space-y-2">
                         <div class="flex justify-between">
                             <span class="text-gray-400">Trend:</span>
-                            <span class="${this.getSignalColor(signals.trend_signal)}">${signals.trend_signal || 'N/A'}</span>
+                            <span class="${this.getTrendColor(signals.trend_signal)}">${signals.trend_signal || 'N/A'}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-400">RSI Signal:</span>
-                            <span class="${this.getSignalColor(signals.rsi_signal)}">${signals.rsi_signal || 'N/A'}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Fear & Greed:</span>
-                            <span class="text-yellow-400">${fearGreed.value || 'N/A'} (${fearGreed.classification || 'N/A'})</span>
+                            <span>${signals.rsi_signal || 'N/A'}</span>
                         </div>
                     </div>
-
-                    ${signals.candlestick_patterns && signals.candlestick_patterns.length > 0 ? `
-                        <h4 class="text-md font-semibold mt-4 mb-2 text-yellow-400">Candlestick Patterns</h4>
-                        <div class="space-y-1">
-                            ${signals.candlestick_patterns.slice(0, 3).map(pattern => 
-                                `<div class="text-sm text-gray-300">• ${pattern}</div>`
-                            ).join('')}
-                        </div>
-                    ` : ''}
                 </div>
 
                 <div>
-                    <h3 class="text-lg font-semibold mb-3 text-purple-400">Market Data</h3>
+                    <h3 class="text-lg font-semibold mb-3 text-purple-400">Key Levels</h3>
                     <div class="space-y-2">
                         <div class="flex justify-between">
-                            <span class="text-gray-400">Volume Status:</span>
-                            <span class="text-white">${volumeAnalysis.volume_status || 'N/A'}</span>
+                            <span class="text-gray-400">Pivot:</span>
+                            <span>$${this.formatNumber(pivot.pivot) || 'N/A'}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-gray-400">Volume Ratio:</span>
-                            <span class="text-white">${volumeAnalysis.volume_ratio ? volumeAnalysis.volume_ratio + 'x' : 'N/A'}</span>
+                            <span class="text-gray-400">R1:</span>
+                            <span>$${this.formatNumber(pivot.resistance_1) || 'N/A'}</span>
                         </div>
-                        ${this.formatOnChainData(onchainData, this.currentSymbol)}
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">S1:</span>
+                            <span>$${this.formatNumber(pivot.support_1) || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold mb-3 text-yellow-400">Fibonacci Levels</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    ${Object.entries(fibonacci).map(([level, price]) => `
+                        <div class="text-center">
+                            <div class="text-gray-400 text-sm">${level.replace('level_', '')}</div>
+                            <div class="font-mono">$${this.formatNumber(price)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    renderRealtimeData(data) {
+        const container = document.getElementById('realtimeData');
+        const changeClass = data.change_24h >= 0 ? 'text-green-400' : 'text-red-400';
+        const changeIcon = data.change_24h >= 0 ? '↗' : '↘';
+
+        container.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-gray-400 text-sm">Current Price</div>
+                    <div class="text-2xl font-bold">$${this.formatNumber(data.price, 4)}</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-gray-400 text-sm">24h Change</div>
+                    <div class="text-xl font-bold ${changeClass}">
+                        ${changeIcon} ${data.change_24h?.toFixed(2) || '0.00'}%
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-gray-400 text-sm">24h Volume</div>
+                    <div class="text-lg font-bold">$${this.formatNumber(data.volume_24h, 0)}</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-gray-400 text-sm">Spread</div>
+                    <div class="text-lg font-bold">
+                        ${data.bid && data.ask ? '$' + this.formatNumber(data.ask - data.bid, 4) : 'N/A'}
                     </div>
                 </div>
             </div>
         `;
     }
 
-    updateFibonacciLevels(data) {
-        const container = document.getElementById('fibonacciLevels');
-        const levels = data.fibonacci_levels || {};
+    renderAlerts() {
+        const container = document.getElementById('alertsList');
 
-        container.innerHTML = Object.entries(levels).map(([level, price]) => `
-            <div class="bg-gray-700 rounded-lg p-4 text-center ${
-                level === data.nearest_level ? 'border-2 border-yellow-400' : ''
-            }">
-                <div class="text-sm text-gray-400">${level.replace('level_', '').replace('_', '.')}</div>
-                <div class="text-lg font-semibold">${this.formatNumber(price, 4)}</div>
-                ${level === data.nearest_level ? '<div class="text-xs text-yellow-400 mt-1">NEAREST</div>' : ''}
-            </div>
-        `).join('');
-    }
-
-    updateRecentAlerts(alerts) {
-        const container = document.getElementById('recentAlerts');
-
-        if (!alerts || alerts.length === 0) {
-            container.innerHTML = '<p class="text-gray-400 text-sm">No recent alerts</p>';
+        if (!this.alerts.length) {
+            container.innerHTML = '<div class="text-gray-400 text-center py-4">No alerts found</div>';
             return;
         }
 
-        container.innerHTML = alerts.slice(0, 5).map(alert => `
-            <div class="bg-gray-700 rounded-lg p-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-sm">${alert.message}</span>
-                    <span class="text-xs text-gray-400">${this.formatDate(alert.timestamp)}</span>
+        container.innerHTML = this.alerts.map(alert => `
+            <div class="bg-gray-700 p-4 rounded-lg flex justify-between items-center">
+                <div>
+                    <div class="font-semibold">${alert.symbol}</div>
+                    <div class="text-sm text-gray-400">
+                        ${alert.alert_type} ${alert.condition_type} ${alert.target_price || alert.percentage_change || alert.volume_threshold}
+                    </div>
+                    <div class="text-xs text-gray-500">${this.formatDate(alert.created_at)}</div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 text-xs rounded ${alert.is_active ? 'bg-green-600' : 'bg-gray-600'}">
+                        ${alert.is_active ? 'Active' : 'Triggered'}
+                    </span>
+                    <button onclick="dashboard.deleteAlert(${alert.id})" 
+                            class="text-red-400 hover:text-red-300">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
         `).join('');
     }
 
-    async createAlert() {
-        const alertType = document.getElementById('alertType').value;
-        const condition = document.getElementById('alertCondition').value;
-        const value = parseFloat(document.getElementById('alertValue').value);
-
-        if (!value) {
-            this.showError('Please enter a valid value');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${this.apiBase}/api/alerts/create`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    symbol: this.currentSymbol,
-                    alert_type: alertType,
-                    condition: condition,
-                    value: value,
-                    user_id: 'web_user'
-                })
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                this.showSuccess('Alert created successfully!');
-                document.getElementById('alertValue').value = '';
-                this.loadActiveAlerts();
-            } else {
-                throw new Error(result.error);
-            }
-        } catch (error) {
-            console.error('Error creating alert:', error);
-            this.showError('Failed to create alert');
-        }
-    }
-
-    async loadActiveAlerts() {
-        try {
-            const response = await fetch('/api/alerts/user/web_user');
-            const data = await response.json();
-
-            if (response.ok) {
-                this.updateActiveAlerts(data.alerts);
-            }
-        } catch (error) {
-            console.error('Error loading active alerts:', error);
-        }
-    }
-
-    updateActiveAlerts(alerts) {
-        const container = document.getElementById('activeAlerts');
-
-        if (!alerts || alerts.length === 0) {
-            container.innerHTML = '<p class="text-gray-400 text-sm">No active alerts</p>';
-            return;
-        }
-
-        container.innerHTML = alerts.filter(alert => alert.is_active).map(alert => `
-            <div class="flex items-center justify-between bg-gray-700 rounded p-2">
-                <div class="flex-1">
-                    <div class="text-sm">${alert.symbol}</div>
-                    <div class="text-xs text-gray-400">${alert.condition_type} $${alert.target_price}</div>
-                </div>
-                <button onclick="dashboard.deleteAlert(${alert.id})" class="text-red-400 hover:text-red-300">
-                    <i class="fas fa-trash text-sm"></i>
-                </button>
-            </div>
-        `).join('');
-    }
-
-    updateAlertConditions(alertType) {
+    updateAlertFields(alertType) {
+        const conditionGroup = document.getElementById('conditionGroup');
+        const valueGroup = document.getElementById('valueGroup');
         const conditionSelect = document.getElementById('alertCondition');
+        const valueInput = document.getElementById('alertValue');
 
-        if (alertType === 'PERCENTAGE') {
-            conditionSelect.innerHTML = `
-                <option value="GAIN">Gain</option>
-                <option value="LOSS">Loss</option>
-            `;
-        } else if (alertType === 'VOLUME') {
-            conditionSelect.innerHTML = `
-                <option value="SPIKE">Spike Above</option>
-            `;
-        } else {
+        if (alertType === 'PRICE') {
+            conditionGroup.style.display = 'block';
             conditionSelect.innerHTML = `
                 <option value="ABOVE">Above</option>
                 <option value="BELOW">Below</option>
             `;
+            valueInput.placeholder = 'Enter target price';
+        } else if (alertType === 'PERCENTAGE') {
+            conditionGroup.style.display = 'block';
+            conditionSelect.innerHTML = `
+                <option value="GAIN">Gain</option>
+                <option value="LOSS">Loss</option>
+            `;
+            valueInput.placeholder = 'Enter percentage (e.g., 5 for 5%)';
+        } else if (alertType === 'VOLUME') {
+            conditionGroup.style.display = 'none';
+            valueInput.placeholder = 'Enter volume threshold';
+        }
+    }
+
+    async createAlert() {
+        const formData = new FormData(document.getElementById('alertForm'));
+        const alertData = {
+            symbol: formData.get('symbol'),
+            alert_type: formData.get('alert_type'),
+            condition: formData.get('condition'),
+            value: parseFloat(formData.get('value')),
+            user_id: 'web_user'
+        };
+
+        try {
+            const response = await fetch('/api/alerts/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(alertData)
+            });
+
+            if (!response.ok) throw new Error('Failed to create alert');
+
+            const result = await response.json();
+            this.showSuccess('Alert created successfully!');
+            document.getElementById('alertForm').reset();
+            await this.loadUserAlerts();
+        } catch (error) {
+            console.error('Create alert error:', error);
+            this.showError('Failed to create alert');
         }
     }
 
     async deleteAlert(alertId) {
+        if (!confirm('Are you sure you want to delete this alert?')) return;
+
         try {
             const response = await fetch(`/api/alerts/${alertId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: 'web_user' })
             });
 
-            if (response.ok) {
-                this.showSuccess('Alert deleted');
-                this.loadActiveAlerts();
-            } else {
-                throw new Error('Failed to delete alert');
-            }
+            if (!response.ok) throw new Error('Failed to delete alert');
+
+            this.showSuccess('Alert deleted successfully!');
+            await this.loadUserAlerts();
         } catch (error) {
-            console.error('Error deleting alert:', error);
+            console.error('Delete alert error:', error);
             this.showError('Failed to delete alert');
         }
     }
@@ -440,50 +379,6 @@ class CryptoDashboard {
         });
     }
 
-    formatOnChainData(onchainData, symbol) {
-        if (!onchainData || Object.keys(onchainData).length === 0 || onchainData.error) {
-            return '<div class="text-gray-500 text-sm">On-chain data not available</div>';
-        }
-
-        let html = '<div class="text-sm text-gray-300 mb-2 mt-3">On-Chain Data:</div>';
-
-        if (symbol.includes('BTC')) {
-            if (onchainData.network_hash_rate) {
-                html += `<div class="flex justify-between">
-                    <span class="text-gray-400">Hash Rate:</span>
-                    <span class="text-white">${this.formatNumber(onchainData.network_hash_rate)}</span>
-                </div>`;
-            }
-            if (onchainData.difficulty) {
-                html += `<div class="flex justify-between">
-                    <span class="text-gray-400">Difficulty:</span>
-                    <span class="text-white">${this.formatNumber(onchainData.difficulty)}</span>
-                </div>`;
-            }
-            if (onchainData.mempool_transactions) {
-                html += `<div class="flex justify-between">
-                    <span class="text-gray-400">Mempool:</span>
-                    <span class="text-white">${this.formatNumber(onchainData.mempool_transactions)} txs</span>
-                </div>`;
-            }
-        } else if (symbol.includes('ETH')) {
-            if (onchainData.fast_gas_price) {
-                html += `<div class="flex justify-between">
-                    <span class="text-gray-400">Fast Gas:</span>
-                    <span class="text-white">${onchainData.fast_gas_price} gwei</span>
-                </div>`;
-            }
-            if (onchainData.total_nodes) {
-                html += `<div class="flex justify-between">
-                    <span class="text-gray-400">Nodes:</span>
-                    <span class="text-white">${this.formatNumber(onchainData.total_nodes)}</span>
-                </div>`;
-            }
-        }
-
-        return html;
-    }
-
     getRSIColor(rsi) {
         if (!rsi) return 'text-gray-400';
         if (rsi > 70) return 'text-red-400';
@@ -491,28 +386,21 @@ class CryptoDashboard {
         return 'text-yellow-400';
     }
 
-    getSignalColor(signal) {
-        if (!signal) return 'text-gray-400';
-        if (signal.includes('Bullish') || signal.includes('Uptrend') || signal.includes('Oversold')) {
-            return 'text-green-400';
-        }
-        if (signal.includes('Bearish') || signal.includes('Downtrend') || signal.includes('Overbought')) {
-            return 'text-red-400';
-        }
+    getTrendColor(trend) {
+        if (!trend) return 'text-gray-400';
+        if (trend.includes('Uptrend')) return 'text-green-400';
+        if (trend.includes('Downtrend')) return 'text-red-400';
         return 'text-yellow-400';
     }
 
-    getPressureColor(pressure) {
-        switch(pressure) {
-            case 'Bullish': return 'text-green-400';
-            case 'Bearish': return 'text-red-400';
-            default: return 'text-gray-400';
-        }
+    showLoading() {
+        this.isLoading = true;
+        document.getElementById('loadingIndicator').classList.remove('hidden');
     }
 
-    showLoading(show) {
-        const overlay = document.getElementById('loadingOverlay');
-        overlay.style.display = show ? 'flex' : 'none';
+    hideLoading() {
+        this.isLoading = false;
+        document.getElementById('loadingIndicator').classList.add('hidden');
     }
 
     showSuccess(message) {
@@ -534,27 +422,11 @@ class CryptoDashboard {
 
         setTimeout(() => {
             notification.remove();
-        }, 3000);
+        }, 5000);
     }
 }
 
-class AlertManager {
-    constructor() {
-        this.alerts = [];
-    }
-
-    add(alert) {
-        this.alerts.push(alert);
-    }
-
-    remove(id) {
-        this.alerts = this.alerts.filter(alert => alert.id !== id);
-    }
-
-    getActive() {
-        return this.alerts.filter(alert => alert.active);
-    }
-}
-
-// Initialize dashboard when page loads
-const dashboard = new CryptoDashboard();
+// Initialize dashboard when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.dashboard = new CryptoDashboard();
+});
