@@ -47,102 +47,6 @@ def calculate_fibonacci_levels(high, low):
     diff = high - low
     levels = {
         'level_0': high,
-
-def generate_comprehensive_summary(analysis_data):
-    """Generate human-readable comprehensive analysis summary"""
-    try:
-        # Extract key data
-        symbol = analysis_data.get('symbol', 'N/A')
-        price = analysis_data.get('close_price', 0)
-        
-        # Get sentiment score
-        sentiment = analysis_data.get('signals', {}).get('market_sentiment_score', {})
-        sentiment_score = sentiment.get('score', 50)
-        sentiment_label = sentiment.get('label', 'Neutral')
-        
-        # Get key indicators
-        momentum = analysis_data.get('technical_indicators', {}).get('momentum', {})
-        trend = analysis_data.get('technical_indicators', {}).get('trend', {})
-        ma = analysis_data.get('technical_indicators', {}).get('moving_averages', {})
-        
-        # Generate summary
-        summary = {
-            "overall_assessment": {
-                "sentiment": sentiment_label,
-                "confidence": sentiment.get('confidence', 'Medium'),
-                "score": f"{sentiment_score:.1f}/100",
-                "recommendation": get_trading_recommendation(sentiment_score)
-            },
-            
-            "key_levels": {
-                "current_price": f"${price:,.2f}",
-                "nearest_support": analysis_data.get('support_resistance', {}).get('nearest_support'),
-                "nearest_resistance": analysis_data.get('support_resistance', {}).get('nearest_resistance'),
-                "pivot_point": analysis_data.get('pivot_points', {}).get('pivot')
-            },
-            
-            "momentum_status": {
-                "rsi_14": momentum.get('rsi_14'),
-                "rsi_signal": classify_rsi(momentum.get('rsi_14')),
-                "macd_trend": analysis_data.get('signals', {}).get('trend_analysis', {}).get('macd_trend', 'Neutral'),
-                "trend_strength": analysis_data.get('signals', {}).get('trend_analysis', {}).get('trend_strength', 'Weak')
-            },
-            
-            "moving_average_summary": {
-                "short_term": "Bullish" if price > ma.get('sma_20', 0) else "Bearish" if ma.get('sma_20') else "N/A",
-                "medium_term": "Bullish" if price > ma.get('sma_50', 0) else "Bearish" if ma.get('sma_50') else "N/A",
-                "long_term": "Bullish" if price > ma.get('sma_200', 0) else "Bearish" if ma.get('sma_200') else "N/A"
-            },
-            
-            "risk_assessment": {
-                "volatility": analysis_data.get('signals', {}).get('volatility_analysis', {}).get('volatility_level', 'Normal'),
-                "volume_trend": analysis_data.get('signals', {}).get('volume_analysis_detailed', {}).get('volume_trend', 'Normal'),
-                "bb_position": analysis_data.get('signals', {}).get('volatility_analysis', {}).get('bb_position', 'Middle')
-            }
-        }
-        
-        return summary
-        
-    except Exception as e:
-        return {"error": f"Failed to generate summary: {str(e)}"}
-
-def get_trading_recommendation(sentiment_score):
-    """Generate trading recommendation based on sentiment score"""
-    if sentiment_score >= 75:
-        return "Strong Buy - Multiple bullish signals aligned"
-    elif sentiment_score >= 65:
-        return "Buy - Bullish momentum present"
-    elif sentiment_score >= 55:
-        return "Weak Buy - Slight bullish bias"
-    elif sentiment_score >= 45:
-        return "Hold - Mixed signals, wait for clarity"
-    elif sentiment_score >= 35:
-        return "Weak Sell - Slight bearish bias"
-    elif sentiment_score >= 25:
-        return "Sell - Bearish momentum present"
-    else:
-        return "Strong Sell - Multiple bearish signals aligned"
-
-def classify_rsi(rsi_value):
-    """Classify RSI reading"""
-    if not rsi_value:
-        return "N/A"
-    if rsi_value > 80:
-        return "Extremely Overbought"
-    elif rsi_value > 70:
-        return "Overbought"
-    elif rsi_value > 60:
-        return "Bullish"
-    elif rsi_value > 40:
-        return "Neutral"
-    elif rsi_value > 30:
-        return "Bearish"
-    elif rsi_value > 20:
-        return "Oversold"
-    else:
-        return "Extremely Oversold"
-
-
         'level_23.6': high - (diff * 0.236),
         'level_38.2': high - (diff * 0.382),
         'level_50': high - (diff * 0.5),
@@ -552,14 +456,14 @@ def analyze_crypto():
         df.ta.cci(length=20, append=True)
         df.ta.roc(length=10, append=True)
         df.ta.mfi(length=14, append=True)  # Money Flow Index
-        
+
         # Trend Indicators
         df.ta.macd(fast=12, slow=26, signal=9, append=True)
         df.ta.adx(length=14, append=True)
         df.ta.aroon(length=14, append=True)
         df.ta.psar(append=True)  # Parabolic SAR
         df.ta.dmi(length=14, append=True)  # Directional Movement Index
-        
+
         # Moving Averages
         df.ta.sma(length=10, append=True)
         df.ta.sma(length=20, append=True)
@@ -572,14 +476,14 @@ def analyze_crypto():
         df.ta.ema(length=200, append=True)
         df.ta.wma(length=20, append=True)  # Weighted Moving Average
         df.ta.vwma(length=20, append=True)  # Volume Weighted Moving Average
-        
+
         # Volatility Indicators
         df.ta.bbands(length=20, std=2, append=True)
         df.ta.kc(length=20, scalar=2, append=True)  # Keltner Channels
         df.ta.atr(length=14, append=True)  # Average True Range
         df.ta.natr(length=14, append=True)  # Normalized ATR
         df.ta.true_range(append=True)
-        
+
         # Volume Indicators
         df.ta.obv(append=True)  # On Balance Volume
         df.ta.ad(append=True)  # Accumulation/Distribution
@@ -587,28 +491,28 @@ def analyze_crypto():
         df.ta.efi(length=13, append=True)  # Elder's Force Index
         df.ta.vpt(append=True)  # Volume Price Trend
         df.ta.pvt(append=True)  # Price Volume Trend
-        
+
         # Ichimoku Cloud (complete)
         df.ta.ichimoku(append=True)
-        
+
         # Custom calculations
         # Support/Resistance strength
         df['pivot_high'] = df.ta.pivots(high=df['high'], length=5)
         df['pivot_low'] = df.ta.pivots(low=df['low'], length=5)
-        
+
         # Price position relative to moving averages
         df['price_vs_sma20'] = (df['close'] - df['SMA_20']) / df['SMA_20'] * 100
         df['price_vs_sma50'] = (df['close'] - df['SMA_50']) / df['SMA_50'] * 100
         df['price_vs_ema20'] = (df['close'] - df['EMA_12']) / df['EMA_12'] * 100
-        
+
         # Volume analysis
         df['volume_sma'] = df['volume'].rolling(window=20).mean()
         df['volume_ratio'] = df['volume'] / df['volume_sma']
-        
+
         # Volatility measures
         df['price_change_pct'] = df['close'].pct_change() * 100
         df['volatility_20'] = df['price_change_pct'].rolling(window=20).std()
-        
+
         # Market structure
         df['higher_high'] = (df['high'] > df['high'].shift(1)) & (df['high'].shift(1) > df['high'].shift(2))
         df['lower_low'] = (df['low'] < df['low'].shift(1)) & (df['low'].shift(1) < df['low'].shift(2))
@@ -716,7 +620,7 @@ def analyze_crypto():
 
         # Current values
         price = latest_data['close']
-        
+
         # Momentum indicators
         rsi_14 = get_indicator_value('RSI_14')
         rsi_7 = get_indicator_value('RSI_7')
@@ -728,7 +632,7 @@ def analyze_crypto():
         cci = get_indicator_value('CCI_20_0.015')
         roc = get_indicator_value('ROC_10')
         mfi = get_indicator_value('MFI_14')
-        
+
         # Trend indicators
         macd_line = get_indicator_value('MACD_12_26_9')
         macd_signal = get_indicator_value('MACDs_12_26_9')
@@ -739,7 +643,7 @@ def analyze_crypto():
         aroon_up = get_indicator_value('AROONU_14')
         aroon_down = get_indicator_value('AROOND_14')
         psar = get_indicator_value('PSARl_0.02_0.2') or get_indicator_value('PSARs_0.02_0.2')
-        
+
         # Moving averages
         sma_10 = get_indicator_value('SMA_10')
         sma_20 = get_indicator_value('SMA_20')
@@ -750,7 +654,7 @@ def analyze_crypto():
         ema_26 = get_indicator_value('EMA_26')
         ema_50 = get_indicator_value('EMA_50')
         ema_200 = get_indicator_value('EMA_200')
-        
+
         # Volatility indicators
         bb_upper = get_indicator_value('BBU_20_2.0')
         bb_middle = get_indicator_value('BBM_20_2.0')
@@ -759,19 +663,19 @@ def analyze_crypto():
         kc_lower = get_indicator_value('KCLe_20_2')
         atr = get_indicator_value('ATR_14')
         natr = get_indicator_value('NATR_14')
-        
+
         # Volume indicators
         obv = get_indicator_value('OBV')
         ad = get_indicator_value('AD')
         cmf = get_indicator_value('CMF_20')
         efi = get_indicator_value('EFI_13')
-        
+
         # Ichimoku values
         ichimoku_a = get_indicator_value('ISA_9')
         ichimoku_b = get_indicator_value('ISB_26')
         tenkan = get_indicator_value('ITS_9')
         kijun = get_indicator_value('IKS_26')
-        
+
         # Custom calculations
         price_vs_sma20 = get_indicator_value('price_vs_sma20')
         price_vs_sma50 = get_indicator_value('price_vs_sma50')
@@ -779,7 +683,7 @@ def analyze_crypto():
         volatility_20 = get_indicator_value('volatility_20')
 
         # --- COMPREHENSIVE SIGNAL ANALYSIS ---
-        
+
         # 1. MOMENTUM SIGNALS
         momentum_signals = {
             "rsi_14": get_indicator_signal(rsi_14, 70, 30),
@@ -791,14 +695,14 @@ def analyze_crypto():
             "cci": get_indicator_signal(cci, 100, -100),
             "mfi": get_indicator_signal(mfi, 80, 20),
         }
-        
+
         # 2. TREND SIGNALS
         trend_strength = "Weak"
         if adx:
             if adx > 50: trend_strength = "Very Strong"
             elif adx > 25: trend_strength = "Strong"
             elif adx > 20: trend_strength = "Moderate"
-        
+
         macd_trend = "Neutral"
         if macd_line and macd_signal:
             if macd_line > macd_signal and macd_line > 0:
@@ -809,51 +713,52 @@ def analyze_crypto():
                 macd_trend = "Strong Bearish"
             elif macd_line < macd_signal and macd_line > 0:
                 macd_trend = "Bearish Momentum"
-        
+
         # 3. MOVING AVERAGE ANALYSIS
         ma_analysis = {
             "short_term_trend": "Neutral",
-            "medium_term_trend": "Neutral", 
+            "medium_term_trend": "Neutral",
             "long_term_trend": "Neutral",
             "ma_alignment": "Mixed"
         }
-        
+
         if price and sma_10 and sma_20:
             if price > sma_10 > sma_20:
+```python
                 ma_analysis["short_term_trend"] = "Bullish"
             elif price < sma_10 < sma_20:
                 ma_analysis["short_term_trend"] = "Bearish"
-                
+
         if price and sma_50 and sma_100:
             if price > sma_50 > sma_100:
                 ma_analysis["medium_term_trend"] = "Bullish"
             elif price < sma_50 < sma_100:
                 ma_analysis["medium_term_trend"] = "Bearish"
-                
+
         if price and sma_100 and sma_200:
             if price > sma_100 > sma_200:
                 ma_analysis["long_term_trend"] = "Bullish"
             elif price < sma_100 < sma_200:
                 ma_analysis["long_term_trend"] = "Bearish"
-        
+
         # Check MA alignment (all trending in same direction)
         if sma_10 and sma_20 and sma_50 and sma_200:
             if sma_10 > sma_20 > sma_50 > sma_200:
                 ma_analysis["ma_alignment"] = "Perfect Bullish"
             elif sma_10 < sma_20 < sma_50 < sma_200:
                 ma_analysis["ma_alignment"] = "Perfect Bearish"
-        
+
         # 4. VOLATILITY ANALYSIS
         volatility_analysis = {
             "bb_position": "Middle",
             "bb_squeeze": False,
             "volatility_level": "Normal"
         }
-        
+
         if bb_upper and bb_lower and price:
             bb_width = bb_upper - bb_lower
             bb_position = (price - bb_lower) / bb_width
-            
+
             if bb_position > 0.8:
                 volatility_analysis["bb_position"] = "Upper Band - Overbought"
             elif bb_position < 0.2:
@@ -864,25 +769,25 @@ def get_comprehensive_summary(symbol):
     try:
         validated_symbol = validate_symbol(symbol)
         timeframe = request.args.get('timeframe', '1d')
-        
+
         # Get full analysis
         response = requests.get(f"http://0.0.0.0:5000/api/analyze?symbol={validated_symbol}&timeframe={timeframe}")
-        
+
         if response.status_code != 200:
             return jsonify({"error": "Failed to get analysis data"}), 500
-        
+
         analysis_data = response.json()
-        
+
         # Generate comprehensive summary
         summary = generate_comprehensive_summary(analysis_data)
-        
+
         return jsonify({
             "symbol": validated_symbol,
             "timeframe": timeframe,
             "summary": summary,
             "generated_at": datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         return jsonify({"error": f"Failed to generate summary: {str(e)}"}), 500
 
@@ -892,16 +797,16 @@ def get_all_indicators(symbol):
     try:
         validated_symbol = validate_symbol(symbol)
         timeframe = request.args.get('timeframe', '1d')
-        
+
         # Get full analysis
         response = requests.get(f"http://0.0.0.0:5000/api/analyze?symbol={validated_symbol}&timeframe={timeframe}")
-        
+
         if response.status_code != 200:
             return jsonify({"error": "Failed to get analysis data"}), 500
-        
+
         analysis_data = response.json()
         indicators = analysis_data.get('technical_indicators', {})
-        
+
         # Organize indicators by category with interpretations
         organized_indicators = {
             "momentum_indicators": {
@@ -930,7 +835,7 @@ def get_all_indicators(symbol):
                 "key_signals": []
             }
         }
-        
+
         # Add key signals for each category
         momentum_data = indicators.get('momentum', {})
         if momentum_data.get('rsi_14'):
@@ -939,7 +844,7 @@ def get_all_indicators(symbol):
                 organized_indicators["momentum_indicators"]["key_signals"].append(f"RSI {rsi:.1f} - Overbought")
             elif rsi < 30:
                 organized_indicators["momentum_indicators"]["key_signals"].append(f"RSI {rsi:.1f} - Oversold")
-        
+
         return jsonify({
             "symbol": validated_symbol,
             "timeframe": timeframe,
@@ -947,7 +852,7 @@ def get_all_indicators(symbol):
             "indicators_by_category": organized_indicators,
             "analysis_timestamp": datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         return jsonify({"error": f"Failed to get indicators: {str(e)}"}), 500
 
@@ -957,7 +862,7 @@ def get_all_indicators(symbol):
                 volatility_analysis["bb_position"] = "Above Middle - Bullish"
             elif bb_position < 0.4:
                 volatility_analysis["bb_position"] = "Below Middle - Bearish"
-        
+
         if natr:
             if natr > 3:
                 volatility_analysis["volatility_level"] = "Very High"
@@ -965,14 +870,14 @@ def get_all_indicators(symbol):
                 volatility_analysis["volatility_level"] = "High"
             elif natr < 1:
                 volatility_analysis["volatility_level"] = "Low"
-        
+
         # 5. VOLUME ANALYSIS
         volume_analysis_detailed = {
             "volume_trend": "Normal",
             "volume_confirmation": "Neutral",
             "accumulation_distribution": "Neutral"
         }
-        
+
         if volume_ratio:
             if volume_ratio > 2:
                 volume_analysis_detailed["volume_trend"] = "Extreme High Volume"
@@ -980,7 +885,7 @@ def get_all_indicators(symbol):
                 volume_analysis_detailed["volume_trend"] = "High Volume"
             elif volume_ratio < 0.5:
                 volume_analysis_detailed["volume_trend"] = "Low Volume"
-        
+
         if cmf:
             if cmf > 0.2:
                 volume_analysis_detailed["accumulation_distribution"] = "Strong Accumulation"
@@ -990,31 +895,31 @@ def get_all_indicators(symbol):
                 volume_analysis_detailed["accumulation_distribution"] = "Strong Distribution"
             elif cmf < -0.1:
                 volume_analysis_detailed["accumulation_distribution"] = "Distribution"
-        
+
         # 6. ICHIMOKU ANALYSIS
         ichimoku_analysis = {
             "cloud_position": "In Cloud",
             "tk_cross": "Neutral",
             "cloud_twist": "Neutral"
         }
-        
+
         if ichimoku_a and ichimoku_b and price:
             if price > max(ichimoku_a, ichimoku_b):
                 ichimoku_analysis["cloud_position"] = "Above Cloud - Bullish"
             elif price < min(ichimoku_a, ichimoku_b):
                 ichimoku_analysis["cloud_position"] = "Below Cloud - Bearish"
-                
+
         if tenkan and kijun:
             if tenkan > kijun:
                 ichimoku_analysis["tk_cross"] = "Bullish (Tenkan > Kijun)"
             elif tenkan < kijun:
                 ichimoku_analysis["tk_cross"] = "Bearish (Tenkan < Kijun)"
-        
+
         # 7. OVERALL MARKET SENTIMENT SCORE
         bullish_signals = 0
         bearish_signals = 0
         total_signals = 0
-        
+
         # Count momentum signals
         for signal in momentum_signals.values():
             if signal != "N/A":
@@ -1023,14 +928,14 @@ def get_all_indicators(symbol):
                     bullish_signals += 1
                 elif "Overbought" in signal:
                     bearish_signals += 1
-        
+
         # Count trend signals
         if "Bullish" in macd_trend:
             bullish_signals += 1
         elif "Bearish" in macd_trend:
             bearish_signals += 1
         total_signals += 1
-        
+
         # Count MA signals
         for trend in ma_analysis.values():
             if trend != "Mixed" and trend != "Neutral":
@@ -1039,12 +944,12 @@ def get_all_indicators(symbol):
                     bullish_signals += 1
                 elif "Bearish" in trend:
                     bearish_signals += 1
-        
+
         # Calculate sentiment score
         sentiment_score = 50  # Neutral baseline
         if total_signals > 0:
             sentiment_score = (bullish_signals / total_signals) * 100
-        
+
         sentiment_label = "Neutral"
         if sentiment_score >= 70:
             sentiment_label = "Strong Bullish"
@@ -1063,7 +968,7 @@ def get_all_indicators(symbol):
             "symbol": validated_symbol,
             "timeframe": timeframe,
             "close_price": price,
-            
+
             # COMPREHENSIVE TECHNICAL INDICATORS
             "technical_indicators": {
                 # Momentum Indicators
@@ -1079,7 +984,7 @@ def get_all_indicators(symbol):
                     "roc_10": roc,
                     "mfi": mfi
                 },
-                
+
                 # Trend Indicators
                 "trend": {
                     "macd_line": macd_line,
@@ -1092,7 +997,7 @@ def get_all_indicators(symbol):
                     "aroon_down": aroon_down,
                     "parabolic_sar": psar
                 },
-                
+
                 # Moving Averages
                 "moving_averages": {
                     "sma_10": sma_10,
@@ -1105,7 +1010,7 @@ def get_all_indicators(symbol):
                     "ema_50": ema_50,
                     "ema_200": ema_200
                 },
-                
+
                 # Volatility Indicators
                 "volatility": {
                     "bb_upper": bb_upper,
@@ -1117,7 +1022,7 @@ def get_all_indicators(symbol):
                     "natr": natr,
                     "volatility_20d": volatility_20
                 },
-                
+
                 # Volume Indicators
                 "volume": {
                     "obv": obv,
@@ -1126,7 +1031,7 @@ def get_all_indicators(symbol):
                     "elder_force_index": efi,
                     "volume_ratio": volume_ratio
                 },
-                
+
                 # Ichimoku Components
                 "ichimoku": {
                     "tenkan_sen": tenkan,
@@ -1134,19 +1039,19 @@ def get_all_indicators(symbol):
                     "senkou_span_a": ichimoku_a,
                     "senkou_span_b": ichimoku_b
                 },
-                
+
                 # Price Position Analysis
                 "price_position": {
                     "vs_sma20_pct": price_vs_sma20,
                     "vs_sma50_pct": price_vs_sma50
                 }
             },
-            
+
             # COMPREHENSIVE SIGNAL ANALYSIS
             "signals": {
                 # Momentum Signals
                 "momentum_signals": momentum_signals,
-                
+
                 # Trend Analysis
                 "trend_analysis": {
                     "trend_strength": trend_strength,
@@ -1154,16 +1059,16 @@ def get_all_indicators(symbol):
                     "macd_trend": macd_trend,
                     "moving_average_analysis": ma_analysis
                 },
-                
+
                 # Volatility Analysis
                 "volatility_analysis": volatility_analysis,
-                
+
                 # Volume Analysis
                 "volume_analysis_detailed": volume_analysis_detailed,
-                
+
                 # Ichimoku Analysis
                 "ichimoku_analysis": ichimoku_analysis,
-                
+
                 # Overall Market Sentiment
                 "market_sentiment_score": {
                     "score": round(sentiment_score, 2),
@@ -1173,33 +1078,33 @@ def get_all_indicators(symbol):
                     "total_signals": total_signals,
                     "confidence": "High" if total_signals > 10 else "Medium" if total_signals > 5 else "Low"
                 },
-                
+
                 # Pattern Detection
                 "candlestick_patterns": candlestick_patterns,
                 "macd_crossover": macd_alert
             },
-            
+
             # LEVELS ANALYSIS
             "fibonacci_levels": fibonacci_levels,
             "pivot_points": pivot_points,
             "support_resistance": support_resistance,
-            
+
             # MARKET DATA
             "market_sentiment": {
                 "order_book": order_book_data,
                 "volume_analysis": volume_analysis,
                 "fear_and_greed": fear_greed_data
             },
-            
+
             # BLOCKCHAIN DATA
             "onchain_data": onchain_data,
-            
+
             # ALERTS
             "alerts": {
                 "latest_macd_alert": macd_alert,
                 "recent_alerts": alert_history[-5:] if alert_history else []
             },
-            
+
             # METADATA
             "analysis_metadata": {
                 "total_indicators_calculated": 40,
