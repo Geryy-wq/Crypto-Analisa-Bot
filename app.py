@@ -11,8 +11,13 @@ import threading
 import json
 import traceback
 import asyncio
+import logging
 
 app = Flask(__name__)
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Import Alert System
 from alert_system import alert_system
@@ -22,14 +27,12 @@ cache_data = {}
 alert_history = []
 
 # Import Telegram bot
+telegram_bot = None
 try:
     from telegram_bot import start_telegram_bot
-    telegram_bot = None
 except ImportError:
-    print(
-        "⚠️ Telegram bot tidak dapat diimport. Install python-telegram-bot terlebih dahulu."
-    )
-    telegram_bot = None
+    print("Warning: Telegram bot tidak dapat diimport. Install python-telegram-bot terlebih dahulu.")
+    start_telegram_bot = None
 
 
 def validate_symbol(symbol_input):
@@ -1252,13 +1255,16 @@ def get_fibonacci_only(symbol):
 
 def start_telegram_bot_thread():
     """Start Telegram bot in a separate thread"""
-    import logging
     logger = logging.getLogger(__name__)
 
     global telegram_bot
 
     try:
-        logger.info("🔄 Starting telegram bot thread...")
+        logger.info("Starting telegram bot thread...")
+
+        if start_telegram_bot is None:
+            logger.error("start_telegram_bot function not available")
+            return
 
         # Set event loop untuk thread ini
         try:
@@ -1266,18 +1272,18 @@ def start_telegram_bot_thread():
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            logger.info("🔄 Created new event loop for thread")
+            logger.info("Created new event loop for thread")
 
         telegram_bot = start_telegram_bot()
 
         if telegram_bot:
-            logger.info("🚀 Starting Telegram Bot in background...")
+            logger.info("Starting Telegram Bot in background...")
             telegram_bot.run()
         else:
-            logger.error("❌ Failed to create telegram bot instance")
+            logger.error("Failed to create telegram bot instance")
 
     except Exception as e:
-        logger.error(f"❌ Error starting Telegram bot thread: {e}")
+        logger.error(f"Error starting Telegram bot thread: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
 
 
@@ -1335,14 +1341,12 @@ def start_telegram():
             }), 400
 
         # Start bot in background thread
-        if not telegram_bot:
-            logger.info("🚀 Creating new bot thread...")
-            thread = threading.Thread(target=start_telegram_bot_thread,
-                                      daemon=True)
+        if not telegram_bot and start_telegram_bot:
+            logger.info("Creating new bot thread...")
+            thread = threading.Thread(target=start_telegram_bot_thread, daemon=True)
             thread.start()
 
             # Wait a bit to see if bot starts successfully
-            import time
             time.sleep(2)
 
             return jsonify({
@@ -1648,29 +1652,29 @@ async def send_telegram_alert(user_id, message):
 @app.route('/')
 def home():
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-    bot_status = "✅ Dikonfigurasi" if bot_token else "❌ Belum dikonfigurasi"
+    bot_status = "Configured" if bot_token else "Not Configured"
 
     return f"""
-    <h1>🚀 Advanced Crypto Trading API</h1>
-    <h2>🆕 Enhanced Features:</h2>
+    <h1>Advanced Crypto Trading API</h1>
+    <h2>Enhanced Features:</h2>
     <ul>
-        <li>✅ <strong>40+ Technical Indicators</strong> - RSI, MACD, Bollinger Bands, Ichimoku, ADX, Aroon, CCI, MFI, dll</li>
-        <li>✅ <strong>Comprehensive Signal Analysis</strong> - Momentum, Trend, Volume, Volatility analysis</li>
-        <li>✅ <strong>Market Sentiment Scoring</strong> - Overall bullish/bearish score dengan confidence level</li>
-        <li>✅ <strong>Advanced Support/Resistance</strong> - Multi-level S/R dengan distance calculation</li>
-        <li>✅ <strong>Moving Average Analysis</strong> - 9 different MA types with alignment analysis</li>
-        <li>✅ <strong>Volume & Volatility Indicators</strong> - OBV, CMF, ATR, NATR, Volume ratio analysis</li>
-        <li>✅ <strong>Ichimoku Cloud Complete</strong> - All components with position analysis</li>
-        <li>✅ Interactive Web Dashboard</li>
-        <li>✅ Real-time Alert System dengan SQLite Database</li>
-        <li>✅ On-Chain Data Integration (BTC/ETH)</li>
-        <li>🤖 Telegram Bot Integration - {bot_status}</li>
+        <li><strong>40+ Technical Indicators</strong> - RSI, MACD, Bollinger Bands, Ichimoku, ADX, Aroon, CCI, MFI, dll</li>
+        <li><strong>Comprehensive Signal Analysis</strong> - Momentum, Trend, Volume, Volatility analysis</li>
+        <li><strong>Market Sentiment Scoring</strong> - Overall bullish/bearish score dengan confidence level</li>
+        <li><strong>Advanced Support/Resistance</strong> - Multi-level S/R dengan distance calculation</li>
+        <li><strong>Moving Average Analysis</strong> - 9 different MA types with alignment analysis</li>
+        <li><strong>Volume & Volatility Indicators</strong> - OBV, CMF, ATR, NATR, Volume ratio analysis</li>
+        <li><strong>Ichimoku Cloud Complete</strong> - All components with position analysis</li>
+        <li>Interactive Web Dashboard</li>
+        <li>Real-time Alert System dengan SQLite Database</li>
+        <li>On-Chain Data Integration (BTC/ETH)</li>
+        <li>Telegram Bot Integration - {bot_status}</li>
     </ul>
     <div style="background-color: #e6f3ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <h2>🌟 <a href="/dashboard" style="color: #0066cc; text-decoration: none;">Launch Web Dashboard</a></h2>
+        <h2><a href="/dashboard" style="color: #0066cc; text-decoration: none;">Launch Web Dashboard</a></h2>
         <p>Interactive dashboard dengan 40+ indikator teknikal, real-time data, charts, dan alert management!</p>
     </div>
-    <h2>🔥 Comprehensive Analysis Endpoints:</h2>
+    <h2>Comprehensive Analysis Endpoints:</h2>
     <ul>
         <li><code>/api/analyze?symbol=BTC/USDT&timeframe=1d</code> - <strong>Analisis Lengkap 40+ Indikator</strong></li>
         <li><code>/api/analyze/summary/BTC/USDT</code> - <strong>Ringkasan Analisis Mudah Dipahami</strong></li>
@@ -1679,10 +1683,10 @@ def home():
         <li><code>/api/fibonacci/BTC/USDT</code> - Level Fibonacci dengan nearest level</li>
         <li><code>/api/alerts/BTC/USDT</code> - Alert terbaru</li>
     </ul>
-    <h2>📊 Indikator Yang Dihitung:</h2>
+    <h2>Indikator Yang Dihitung:</h2>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0;">
         <div style="background-color: #f0f8ff; padding: 15px; border-radius: 5px;">
-            <h3>🚀 Momentum (10)</h3>
+            <h3>Momentum (10)</h3>
             <ul style="font-size: 0.9em;">
                 <li>RSI (3 periods)</li>
                 <li>Stochastic</li>
@@ -1694,7 +1698,7 @@ def home():
             </ul>
         </div>
         <div style="background-color: #f0fff0; padding: 15px; border-radius: 5px;">
-            <h3>📈 Trend (8)</h3>
+            <h3>Trend (8)</h3>
             <ul style="font-size: 0.9em;">
                 <li>MACD</li>
                 <li>ADX + DI</li>
@@ -1704,7 +1708,7 @@ def home():
             </ul>
         </div>
         <div style="background-color: #fff8f0; padding: 15px; border-radius: 5px;">
-            <h3>📊 Moving Averages (9)</h3>
+            <h3>Moving Averages (9)</h3>
             <ul style="font-size: 0.9em;">
                 <li>SMA (5 periods)</li>
                 <li>EMA (4 periods)</li>
@@ -1713,7 +1717,7 @@ def home():
             </ul>
         </div>
         <div style="background-color: #fff0f8; padding: 15px; border-radius: 5px;">
-            <h3>🌊 Volatility (7)</h3>
+            <h3>Volatility (7)</h3>
             <ul style="font-size: 0.9em;">
                 <li>Bollinger Bands</li>
                 <li>Keltner Channels</li>
@@ -1724,7 +1728,7 @@ def home():
             </ul>
         </div>
         <div style="background-color: #f8f0ff; padding: 15px; border-radius: 5px;">
-            <h3>📦 Volume (6)</h3>
+            <h3>Volume (6)</h3>
             <ul style="font-size: 0.9em;">
                 <li>OBV</li>
                 <li>A/D Line</li>
@@ -1737,9 +1741,9 @@ def home():
     </div>
     <h2>Telegram Bot:</h2>
     <ul>
-        <li><a href="/api/telegram/status">📊 Status Telegram Bot</a></li>
-        <li><a href="/api/telegram/start">🚀 Start Telegram Bot</a></li>
-        <li><a href="/api/telegram/debug">🔧 Debug Telegram Bot</a></li>
+        <li><a href="/api/telegram/status">Status Telegram Bot</a></li>
+        <li><a href="/api/telegram/start">Start Telegram Bot</a></li>
+        <li><a href="/api/telegram/debug">Debug Telegram Bot</a></li>
     </ul>
     <h3>Test Links:</h3>
     <ul>
@@ -1748,31 +1752,7 @@ def home():
         <li><a href="/api/fibonacci/BTC/USDT">Test Fibonacci BTC/USDT</a></li>
     </ul>
     <div style="background-color: #f0f8ff; padding: 15px; border-radius: 5px; margin-top: 20px;">
-        <h3>🤖 Setup Telegram Bot:</h3>
-        <ol>
-            <li>Chat dengan <strong>@BotFather</strong> di Telegram</li>
-            <li>Gunakan command <strong>/newbot</strong></li>
-            <li>Ikuti instruksi untuk membuat bot baru</li>
-            <li>Salin token yang diberikan BotFather</li>
-            <li>Tambahkan token ke <strong>Secrets</strong> dengan key <strong>TELEGRAM_BOT_TOKEN</strong></li>
-            <li>Kunjungi <a href="/api/telegram/start">/api/telegram/start</a> untuk memulai bot</li>
-        </ol>
-    </div>
-    """
-    <h2>Telegram Bot:</h2>
-    <ul>
-        <li><a href="/api/telegram/status">📊 Status Telegram Bot</a></li>
-        <li><a href="/api/telegram/start">🚀 Start Telegram Bot</a></li>
-        <li><a href="/api/telegram/debug">🔧 Debug Telegram Bot</a></li>
-    </ul>
-    <h3>Test Links:</h3>
-    <ul>
-        <li><a href="/api/analyze?symbol=BTC/USDT&timeframe=1d">Test Analyze BTC/USDT</a></li>
-        <li><a href="/api/realtime/BTC/USDT">Test Realtime BTC/USDT</a></li>
-        <li><a href="/api/fibonacci/BTC/USDT">Test Fibonacci BTC/USDT</a></li>
-    </ul>
-    <div style="background-color: #f0f8ff; padding: 15px; border-radius: 5px; margin-top: 20px;">
-        <h3>🤖 Setup Telegram Bot:</h3>
+        <h3>Setup Telegram Bot:</h3>
         <ol>
             <li>Chat dengan <strong>@BotFather</strong> di Telegram</li>
             <li>Gunakan command <strong>/newbot</strong></li>
@@ -1789,31 +1769,29 @@ if __name__ == "__main__":
     # Initialize database untuk alert system
     try:
         alert_system.setup_database()
-        print("✅ Alert system database initialized")
+        print("Alert system database initialized")
     except Exception as e:
-        print(f"⚠️ Alert system initialization warning: {e}")
+        print(f"Alert system initialization warning: {e}")
 
     # Start alert monitoring
-    print("🔔 Starting alert monitoring system...")
+    print("Starting alert monitoring system...")
     alert_thread = threading.Thread(target=start_alert_monitoring, daemon=True)
     alert_thread.start()
 
     # Auto-start Telegram bot jika token tersedia
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-    if bot_token:
-        print("🤖 Starting Telegram bot automatically...")
-        thread = threading.Thread(target=start_telegram_bot_thread,
-                                  daemon=True)
+    if bot_token and start_telegram_bot:
+        print("Starting Telegram bot automatically...")
+        thread = threading.Thread(target=start_telegram_bot_thread, daemon=True)
         thread.start()
         # Wait untuk bot initialization
         time.sleep(3)
     else:
-        print("⚠️ TELEGRAM_BOT_TOKEN tidak ditemukan. Bot tidak akan dimulai.")
-        print("💡 Tambahkan token ke Secrets untuk mengaktifkan bot Telegram.")
+        print("TELEGRAM_BOT_TOKEN tidak ditemukan. Bot tidak akan dimulai.")
+        print("Tambahkan token ke Secrets untuk mengaktifkan bot Telegram.")
 
-    print("🌐 Starting web server...")
-    print("📊 Dashboard available at: http://0.0.0.0:5000/dashboard")
-    print("🔗 Public URL akan tersedia setelah deploy")
-    # Base URL for API crypto - use proper internal URL
-    API_BASE_URL = "http://0.0.0.0:5000/api"
+    print("Starting web server...")
+    print("Dashboard available at: http://0.0.0.0:5000/dashboard")
+    print("Public URL akan tersedia setelah deploy")
+    
     app.run(host='0.0.0.0', port=5000, debug=False)
