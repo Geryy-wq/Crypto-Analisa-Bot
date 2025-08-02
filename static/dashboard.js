@@ -112,9 +112,10 @@ class CryptoDashboard {
         const signals = data.signals || {};
         const fibonacci = data.fibonacci_levels || {};
         const pivot = data.pivot_points || {};
+        const supportResistance = data.support_resistance || {};
 
         container.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
                     <h3 class="text-lg font-semibold mb-3 text-blue-400">Technical Indicators</h3>
                     <div class="space-y-2">
@@ -152,7 +153,7 @@ class CryptoDashboard {
                 </div>
 
                 <div>
-                    <h3 class="text-lg font-semibold mb-3 text-purple-400">Key Levels</h3>
+                    <h3 class="text-lg font-semibold mb-3 text-purple-400">Pivot Points</h3>
                     <div class="space-y-2">
                         <div class="flex justify-between">
                             <span class="text-gray-400">Pivot:</span>
@@ -160,25 +161,74 @@ class CryptoDashboard {
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-400">R1:</span>
-                            <span>$${this.formatNumber(pivot.resistance_1) || 'N/A'}</span>
+                            <span class="text-red-400">$${this.formatNumber(pivot.resistance_1) || 'N/A'}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-400">S1:</span>
-                            <span>$${this.formatNumber(pivot.support_1) || 'N/A'}</span>
+                            <span class="text-green-400">$${this.formatNumber(pivot.support_1) || 'N/A'}</span>
                         </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-orange-400">Support & Resistance</h3>
+                    <div class="space-y-2">
+                        ${supportResistance.nearest_resistance ? `
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">🔴 Nearest R:</span>
+                            <span class="text-red-400">$${this.formatNumber(supportResistance.nearest_resistance)}</span>
+                        </div>
+                        ` : ''}
+                        ${supportResistance.nearest_support ? `
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">🟢 Nearest S:</span>
+                            <span class="text-green-400">$${this.formatNumber(supportResistance.nearest_support)}</span>
+                        </div>
+                        ` : ''}
+                        ${supportResistance.current_price ? `
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Current:</span>
+                            <span class="text-white">$${this.formatNumber(supportResistance.current_price)}</span>
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
             </div>
 
-            <div class="mt-6">
-                <h3 class="text-lg font-semibold mb-3 text-yellow-400">Fibonacci Levels</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    ${Object.entries(fibonacci).map(([level, price]) => `
-                        <div class="text-center">
-                            <div class="text-gray-400 text-sm">${level.replace('level_', '')}</div>
-                            <div class="font-mono">$${this.formatNumber(price)}</div>
+            <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-yellow-400">Fibonacci Levels</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        ${Object.entries(fibonacci).map(([level, price]) => `
+                            <div class="text-center">
+                                <div class="text-gray-400 text-sm">${level.replace('level_', '')}</div>
+                                <div class="font-mono">$${this.formatNumber(price)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-cyan-400">Key S/R Levels</h3>
+                    <div class="space-y-3">
+                        ${supportResistance.resistance_levels && supportResistance.resistance_levels.length > 0 ? `
+                        <div>
+                            <div class="text-red-400 text-sm font-semibold mb-1">🔴 Resistance Levels:</div>
+                            ${supportResistance.resistance_levels.map(level => `
+                                <div class="text-red-300 text-sm">$${this.formatNumber(level)}</div>
+                            `).join('')}
                         </div>
-                    `).join('')}
+                        ` : ''}
+                        
+                        ${supportResistance.support_levels && supportResistance.support_levels.length > 0 ? `
+                        <div>
+                            <div class="text-green-400 text-sm font-semibold mb-1">🟢 Support Levels:</div>
+                            ${supportResistance.support_levels.map(level => `
+                                <div class="text-green-300 text-sm">$${this.formatNumber(level)}</div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         `;

@@ -57,6 +57,7 @@ class CryptoTelegramBot:
                         ("analyze", self.analyze_command),
                         ("price", self.price_command),
                         ("fibonacci", self.fibonacci_command),
+                        ("support", self.support_resistance_command),
                         ("alerts", self.alerts_command),
                         ("createalert", self.create_alert_command),
                         ("myalerts", self.my_alerts_command),
@@ -154,6 +155,7 @@ Gunakan /help untuk melihat semua perintah yang tersedia."""
 • `/analyze <symbol>` - Analisis teknikal lengkap
 • `/price <symbol>` - Harga real-time
 • `/fibonacci <symbol>` - Level Fibonacci
+• `/support <symbol>` - Support & Resistance levels
 • `/volume <symbol>` - Analisis volume
 • `/onchain <symbol>` - Data on-chain
 • `/feargreed` - Fear & Greed Index
@@ -513,6 +515,79 @@ BTC/USDT, ETH/USDT, BNB/USDT, SOL/USDT, ADA/USDT
         except Exception as e:
             await update.message.reply_text(f"❌ Error: {str(e)}")
 
+    async def support_resistance_command(self, update: Update,
+                                           context: ContextTypes.DEFAULT_TYPE):
+        """Handler untuk command /support"""
+        if not context.args:
+            symbol = "BTC/USDT"
+        else:
+            symbol = context.args[0].upper()
+
+        try:
+            response = requests.get(
+                f"{API_BASE_URL}/analyze?symbol={symbol}&timeframe=1d",
+                timeout=20)
+
+            if response.status_code == 200:
+                data = response.json()
+                support_resistance = data.get('support_resistance', {})
+                pivot_points = data.get('pivot_points', {})
+                current_price = data.get('close_price', 0)
+
+                if support_resistance.get('error'):
+                    await update.message.reply_text(
+                        f"❌ {support_resistance['error']}")
+                    return
+
+                text = f"🎯 *Support & Resistance - {symbol}*\n\n"
+                text += f"💰 *Current Price:* ${current_price:,.2f}\n\n"
+
+                # Nearest levels
+                if support_resistance.get('nearest_resistance'):
+                    distance_r = support_resistance['nearest_resistance'] - current_price
+                    distance_r_pct = (distance_r / current_price) * 100
+                    text += f"🔴 *Nearest Resistance:* ${support_resistance['nearest_resistance']:,.2f}\n"
+                    text += f"   Distance: {distance_r_pct:+.2f}% (${distance_r:+,.2f})\n\n"
+
+                if support_resistance.get('nearest_support'):
+                    distance_s = support_resistance['nearest_support'] - current_price
+                    distance_s_pct = (distance_s / current_price) * 100
+                    text += f"🟢 *Nearest Support:* ${support_resistance['nearest_support']:,.2f}\n"
+                    text += f"   Distance: {distance_s_pct:+.2f}% (${distance_s:+,.2f})\n\n"
+
+                # All resistance levels
+                resistance_levels = support_resistance.get('resistance_levels', [])
+                if resistance_levels:
+                    text += f"🔴 *Resistance Levels:*\n"
+                    for i, level in enumerate(resistance_levels[:3], 1):
+                        text += f"   R{i}: ${level:,.2f}\n"
+                    text += "\n"
+
+                # All support levels
+                support_levels = support_resistance.get('support_levels', [])
+                if support_levels:
+                    text += f"🟢 *Support Levels:*\n"
+                    for i, level in enumerate(support_levels[:3], 1):
+                        text += f"   S{i}: ${level:,.2f}\n"
+                    text += "\n"
+
+                # Pivot points
+                text += f"📊 *Pivot Points:*\n"
+                if pivot_points.get('pivot'):
+                    text += f"⚖️ Pivot: ${pivot_points['pivot']:,.2f}\n"
+                if pivot_points.get('resistance_1'):
+                    text += f"🔴 R1: ${pivot_points['resistance_1']:,.2f}\n"
+                if pivot_points.get('support_1'):
+                    text += f"🟢 S1: ${pivot_points['support_1']:,.2f}\n"
+
+                await update.message.reply_text(text, parse_mode='Markdown')
+            else:
+                await update.message.reply_text(
+                    "❌ Gagal mengambil data Support & Resistance")
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {str(e)}")
+
     async def fear_greed_command(self, update: Update,
                                  context: ContextTypes.DEFAULT_TYPE):
         """Handler untuk command /feargreed"""
@@ -681,6 +756,8 @@ BTC/USDT, ETH/USDT, BNB/USDT, SOL/USDT, ADA/USDT
         price = data.get('close_price', 0)
         indicators = data.get('technical_indicators', {})
         signals = data.get('signals', {})
+        support_resistance = data.get('support_resistance', {})
+        pivot_points = data.get('pivot_points', {})
 
         text = f"📊 *Analisis {symbol}*\n\n"
         text += f"💰 *Harga:* ${price:,.2f}\n\n"
@@ -695,6 +772,38 @@ BTC/USDT, ETH/USDT, BNB/USDT, SOL/USDT, ADA/USDT
             text += f"• SMA50: ${indicators['sma50']:,.2f}\n"
             text += f"• SMA200: ${indicators['sma200']:,.2f}\n"
 
+        # Support & Resistance
+        if support_resistance and not support_resistance.get('error'):
+            text += f"\n*🎯 Support & Resistance:*\n"
+            if support_resistance.get('nearest_resistance'):
+                text += f"🔴 Nearest Resistance: ${support_resistance['nearest_resistance']:,.2f}\n"
+            if support_resistance.get('nearest_support'):
+                text += f"🟢 Nearest Support: ${support_resistance['nearest_support']:,.2f}\n"
+            
+            # Show top resistance levels
+            resistance_levels = support_resistance.get('resistance_levels', [])
+            if resistance_levels:
+                text += f"🔴 R Levels: "
+                text += ", ".join([f"${level:,.2f}" for level in resistance_levels[:2]])
+                text += "\n"
+            
+            # Show top support levels
+            support_levels = support_resistance.get('support_levels', [])
+            if support_levels:
+                text += f"🟢 S Levels: "
+                text += ", ".join([f"${level:,.2f}" for level in support_levels[:2]])
+                text += "\n"
+
+        # Pivot Points
+        if pivot_points:
+            text += f"\n*📊 Pivot Points:*\n"
+            if pivot_points.get('pivot'):
+                text += f"⚖️ Pivot: ${pivot_points['pivot']:,.2f}\n"
+            if pivot_points.get('resistance_1'):
+                text += f"🔴 R1: ${pivot_points['resistance_1']:,.2f}\n"
+            if pivot_points.get('support_1'):
+                text += f"🟢 S1: ${pivot_points['support_1']:,.2f}\n"
+
         # Signals
         text += f"\n*🎯 Sinyal Trading:*\n"
         text += f"• Trend: {signals.get('trend_signal', 'N/A')}\n"
@@ -704,7 +813,7 @@ BTC/USDT, ETH/USDT, BNB/USDT, SOL/USDT, ADA/USDT
         patterns = signals.get('candlestick_patterns', [])
         if patterns:
             text += f"\n*🕯️ Pola Candlestick:*\n"
-            for pattern in patterns[:3]:  # Max 3 patterns
+            for pattern in patterns[:2]:  # Max 2 patterns to save space
                 text += f"• {pattern}\n"
 
         return text
